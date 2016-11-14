@@ -909,13 +909,14 @@ void glShaderWindow::render()
         // set up camera position in light source:
         // TODO_TP3: you must initialize these two matrices.
         lightCoordMatrix.setToIdentity();
-        //lightCoordMatrix.lookAt(lightPosition, center ,QVector3D(0,0,1));
+        lightCoordMatrix.lookAt(lightPosition, center ,QVector3D(0,0,1));
+        //lightCoordMatrix.ortho(-1,1,-1,1,-10,20);
         lightPerspective.setToIdentity();
-/*        float r = modelMesh->bsphere.r;
-        float d = lightDistance * modelMesh->bsphere.r;
-        float fovy = 2 * atan2(modelMesh->bsphere.r,d);
-        lightPerspective.perspective(fovy, 1, d-r, d+r);
-*/
+        float r = modelMesh->bsphere.r;
+        float fovy = (90.0/M_PI) * atan2(lightDistance*r,r);
+        float radius = modelMesh->bsphere.r;
+        lightPerspective.perspective(fovy, (float)width()/height(), 0.1 * radius, 20 * radius);
+
         shadowMapGenerationProgram->setUniformValue("matrix", lightCoordMatrix);
         shadowMapGenerationProgram->setUniformValue("perspective", lightPerspective);
         // Draw the entire scene:
@@ -963,7 +964,7 @@ void glShaderWindow::render()
     if (m_program->uniformLocation("shadowMap") != -1) {
         m_program->setUniformValue("shadowMap", shadowMap->texture());
         // TODO_TP3: send the right transform here
-        //m_program->setUniformValue("worldToLightSpace", lightCoordMatrix);
+        m_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
     }
 
     m_vao.bind();
@@ -990,7 +991,7 @@ void glShaderWindow::render()
         if (ground_program->uniformLocation("shadowMap") != -1) {
             ground_program->setUniformValue("shadowMap", shadowMap->texture());
             // TODO_TP3: send the right transform here
-            // ground_program->setUniformValue("worldToLightSpace", ... );
+            ground_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
         }
         ground_vao.bind();
         glDrawElements(GL_TRIANGLES, g_numIndices, GL_UNSIGNED_INT, 0);

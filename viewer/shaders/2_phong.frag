@@ -10,10 +10,11 @@ in vec3 eyeVector;
 in vec3 lightVector;
 in vec3 vertNormal;
 in vec4 vertColor;
+in vec4 lightSpace;
 
 out vec4 fragColor;
 
-vec4 computeIllumination(float ka, float kd, float ks)
+vec4 computeIllumination(float ka, float kd, float ks, float visibility)
 {
     // Normalize vectors
     vec3 N = normalize(vertNormal);
@@ -34,12 +35,14 @@ vec4 computeIllumination(float ka, float kd, float ks)
     float F0 = pow(1-eta,2) / pow(1+eta,2);
     float F = F0 + (1-F0) * pow( (1- dot(h,V)), 5 );
 
-    return (ambiant + diffuse + F * ( (blinnPhong) ? blinnPhongSpecular : phongSpecular));
+    vec4 specular = F * ((blinnPhong) ? blinnPhongSpecular : phongSpecular);
+    return (ambiant + visibility * (diffuse + specular));
 }
 
 void main( void )
 {
-    fragColor = computeIllumination(0.3,0.3,0.4);
-    fragColor += 0.000001 * texture2D(shadowMap, vec2(0,1));
-
+    float visibility = 1.0;
+    if (texture2D(shadowMap, lightSpace.xy).z < lightSpace.z)
+        visibility = 0.0;
+    fragColor = computeIllumination(0.3,0.3,0.4,visibility);
 }
