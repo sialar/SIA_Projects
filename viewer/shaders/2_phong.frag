@@ -1,6 +1,7 @@
 #version 410
 
-uniform float lightIntensity;   // I
+uniform sampler2D shadowMap;
+uniform float lightIntensity;
 uniform bool blinnPhong;
 uniform float shininess;
 uniform float eta;
@@ -39,4 +40,6 @@ vec4 computeIllumination(float ka, float kd, float ks)
 void main( void )
 {
     fragColor = computeIllumination(0.3,0.3,0.4);
+    fragColor += 0.000001 * texture2D(shadowMap, vec2(0,1));
+
 }

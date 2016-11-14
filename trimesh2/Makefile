@@ -185,7 +185,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		libsrc/shared.cc \
 		libsrc/subdiv.cc
 QMAKE_TARGET  = trimesh
-DESTDIR       = ../../SIA_TP/trimesh2/lib/#avoid trailing-slash linebreak
+DESTDIR       = ../../SIA_Projects/trimesh2/lib/#avoid trailing-slash linebreak
 TARGET        = libtrimesh.a
 
 
@@ -211,14 +211,14 @@ first: all
 
 ####### Build rules
 
-staticlib: ../../SIA_TP/trimesh2/lib/$(TARGET)
+staticlib: ../../SIA_Projects/trimesh2/lib/$(TARGET)
 
-../../SIA_TP/trimesh2/lib/$(TARGET):  $(OBJECTS) $(OBJCOMP) 
-	@test -d ../../SIA_TP/trimesh2/lib/ || mkdir -p ../../SIA_TP/trimesh2/lib/
+../../SIA_Projects/trimesh2/lib/$(TARGET):  $(OBJECTS) $(OBJCOMP) 
+	@test -d ../../SIA_Projects/trimesh2/lib/ || mkdir -p ../../SIA_Projects/trimesh2/lib/
 	-$(DEL_FILE) $(TARGET)
 	$(AR) $(TARGET) $(OBJECTS)
-	-$(DEL_FILE) ../../SIA_TP/trimesh2/lib/$(TARGET)
-	-$(MOVE) $(TARGET) ../../SIA_TP/trimesh2/lib/ 
+	-$(DEL_FILE) ../../SIA_Projects/trimesh2/lib/$(TARGET)
+	-$(MOVE) $(TARGET) ../../SIA_Projects/trimesh2/lib/ 
 
 
 Makefile: trimesh2.pro /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qmake.conf /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
@@ -352,7 +352,7 @@ qmake: FORCE
 qmake_all: FORCE
 
 
-all: Makefile ../../SIA_TP/trimesh2/lib/$(TARGET)
+all: Makefile ../../SIA_Projects/trimesh2/lib/$(TARGET)
 
 dist: distdir FORCE
 	(cd `dirname $(DISTDIR)` && $(TAR) $(DISTNAME).tar $(DISTNAME) && $(COMPRESS) $(DISTNAME).tar) && $(MOVE) `dirname $(DISTDIR)`/$(DISTNAME).tar.gz . && $(DEL_FILE) -r $(DISTDIR)
@@ -370,7 +370,7 @@ clean: compiler_clean
 
 
 distclean: clean 
-	-$(DEL_FILE) ../../SIA_TP/trimesh2/lib/$(TARGET) 
+	-$(DEL_FILE) ../../SIA_Projects/trimesh2/lib/$(TARGET) 
 	-$(DEL_FILE) Makefile
 
 
