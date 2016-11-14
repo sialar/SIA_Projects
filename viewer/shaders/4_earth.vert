@@ -10,21 +10,22 @@ in vec3 vertex;
 in vec3 normal;
 in vec3 color;
 
-out vec4 eyeVector;
-out vec4 lightVector;
-out vec4 vertColor;
+out vec3 eyeVector;
+out vec3 lightVector;
 out vec3 vertNormal;
+out vec3 Vert;
 
 void main( void )
 {
-    if (noColor) vertColor = vec4(0.2, 0.6, 0.7, 1.0 );
-    else vertColor = vec4(color, 1.0);
     vec4 vertPosition = matrix * vec4(vertex, 1.0);
     vec4 eyePosition = vec4(0.0, 0.0, 0.0, 1.0);
+    
     // For illumination:
-    /* eyeVector = ...
-    lightVector = ... */
+    lightVector = normalize(vertPosition.xyz - lightPosition);
+    eyeVector = normalize(eyePosition.xyz - vertPosition.xyz);
+    
+    Vert = vertex;
 
-    vertNormal = normalize(normalMatrix * normal);
+    vertNormal = normal;
     gl_Position = perspective * matrix * vec4(vertex, 1.0);
 }
