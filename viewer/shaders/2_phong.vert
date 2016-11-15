@@ -4,6 +4,7 @@ uniform mat4 matrix;
 uniform mat4 perspective;
 uniform mat3 normalMatrix;
 uniform mat4 worldToLightSpace;
+uniform mat4 lightPerspective;
 uniform bool noColor;
 uniform vec3 lightPosition;
 
@@ -34,10 +35,9 @@ void main( void )
     0.0, 0.0, 0.5, 0.0,
     0.5, 0.5, 0.5, 1.0
     );
-    mat4 depthBiasMVP = biasMatrix * worldToLightSpace;
-
 
     vec4 worldCoords = matrix * vec4(vertex, 1.0);
-    lightSpace = depthBiasMVP * worldCoords;
+
+    lightSpace = lightPerspective * worldToLightSpace * worldCoords;
     gl_Position = perspective * worldCoords;
 }

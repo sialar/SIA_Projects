@@ -8,7 +8,7 @@
  * Author: Stefan Gustavson ITN-LiTH (stegu@itn.liu.se) 2004-12-05
  * Simplex indexing functions by Bill Licea-Kane, ATI
  */
- 
+
 /*
 This code was irrevocably released into the public domain
 by its original author, Stefan Gustavson, in January 2011.
@@ -86,7 +86,7 @@ float fade(const in float t) {
 void simplex( const in vec3 P, out vec3 offset1, out vec3 offset2 )
 {
   vec3 offset0;
- 
+
   vec2 isX = step( P.yz, P.xx );         // P.x >= P.y ? 1.0 : 0.0;  P.x >= P.z ? 1.0 : 0.0;
   offset0.x  = dot( isX, vec2( 1.0 ) );  // Accumulate all P.x >= other channels in offset.x
   offset0.yz = 1.0 - isX;                // Accumulate all P.x <  other channels in offset.yz
@@ -94,7 +94,7 @@ void simplex( const in vec3 P, out vec3 offset1, out vec3 offset2 )
   float isY = step( P.z, P.y );          // P.y >= P.z ? 1.0 : 0.0;
   offset0.y += isY;                      // Accumulate P.y >= P.z in offset.y
   offset0.z += 1.0 - isY;                // Accumulate P.y <  P.z in offset.z
- 
+
   // offset0 now contains the unique values 0,1,2 in each channel
   // 2 for the channel greater than other channels
   // 1 for the channel that is less than one but greater than another
@@ -111,7 +111,7 @@ void simplex( const in vec3 P, out vec3 offset1, out vec3 offset2 )
 void simplex( const in vec4 P, out vec4 offset1, out vec4 offset2, out vec4 offset3 )
 {
   vec4 offset0;
- 
+
   vec3 isX = step( P.yzw, P.xxx );        // See comments in 3D simplex function
   offset0.x = dot( isX, vec3( 1.0 ) );
   offset0.yzw = 1.0 - isX;
@@ -119,7 +119,7 @@ void simplex( const in vec4 P, out vec4 offset1, out vec4 offset2, out vec4 offs
   vec2 isY = step( P.zw, P.yy );
   offset0.y += dot( isY, vec2( 1.0 ) );
   offset0.zw += 1.0 - isY;
- 
+
   float isZ = step( P.w, P.z );
   offset0.z += isZ;
   offset0.w += 1.0 - isZ;
@@ -143,11 +143,11 @@ float snoise(const in vec3 P) {
 #define G3 0.166666666667
 
   // Skew the (x,y,z) space to determine which cell of 6 simplices we're in
- 	float s = (P.x + P.y + P.z) * F3; // Factor for 3D skewing
+        float s = (P.x + P.y + P.z) * 0.333333333333; // Factor for 3D skewing
   vec3 Pi = floor(P + s);
-  float t = (Pi.x + Pi.y + Pi.z) * G3;
+  float t = (Pi.x + Pi.y + Pi.z) * 0.166666666667;
   vec3 P0 = Pi - t; // Unskew the cell origin back to (x,y,z) space
-  Pi = Pi * ONE + ONEHALF; // Integer part, scaled and offset for texture lookup
+  Pi = Pi * 0.00390625 + 0.001953125; // Integer part, scaled and offset for texture lookup
 
   vec3 Pf0 = P - P0;  // The x,y distances from the cell origin
 
@@ -159,8 +159,8 @@ float snoise(const in vec3 P) {
   simplex(Pf0, o1, o2);
 
   // Noise contribution from simplex origin
-  float perm0 = texture(permTexture, Pi.xy).a;
-  vec3  grad0 = texture(permTexture, vec2(perm0, Pi.z)).rgb * 4.0 - 1.0;
+  float perm0 = texture2D(permTexture, Pi.xy).a;
+  vec3  grad0 = texture2D(permTexture, vec2(perm0, Pi.z)).rgb * 4.0 - 1.0;
   float t0 = 0.6 - dot(Pf0, Pf0);
   float n0;
   if (t0 < 0.0) n0 = 0.0;
@@ -170,9 +170,9 @@ float snoise(const in vec3 P) {
   }
 
   // Noise contribution from second corner
-  vec3 Pf1 = Pf0 - o1 + G3;
-  float perm1 = texture(permTexture, Pi.xy + o1.xy*ONE).a;
-  vec3  grad1 = texture(permTexture, vec2(perm1, Pi.z + o1.z*ONE)).rgb * 4.0 - 1.0;
+  vec3 Pf1 = Pf0 - o1 + 0.166666666667;
+  float perm1 = texture2D(permTexture, Pi.xy + o1.xy*0.00390625).a;
+  vec3  grad1 = texture2D(permTexture, vec2(perm1, Pi.z + o1.z*0.00390625)).rgb * 4.0 - 1.0;
   float t1 = 0.6 - dot(Pf1, Pf1);
   float n1;
   if (t1 < 0.0) n1 = 0.0;
@@ -180,11 +180,11 @@ float snoise(const in vec3 P) {
     t1 *= t1;
     n1 = t1 * t1 * dot(grad1, Pf1);
   }
-  
+
   // Noise contribution from third corner
-  vec3 Pf2 = Pf0 - o2 + 2.0 * G3;
-  float perm2 = texture(permTexture, Pi.xy + o2.xy*ONE).a;
-  vec3  grad2 = texture(permTexture, vec2(perm2, Pi.z + o2.z*ONE)).rgb * 4.0 - 1.0;
+  vec3 Pf2 = Pf0 - o2 + 2.0 * 0.166666666667;
+  float perm2 = texture2D(permTexture, Pi.xy + o2.xy*0.00390625).a;
+  vec3  grad2 = texture2D(permTexture, vec2(perm2, Pi.z + o2.z*0.00390625)).rgb * 4.0 - 1.0;
   float t2 = 0.6 - dot(Pf2, Pf2);
   float n2;
   if (t2 < 0.0) n2 = 0.0;
@@ -192,11 +192,11 @@ float snoise(const in vec3 P) {
     t2 *= t2;
     n2 = t2 * t2 * dot(grad2, Pf2);
   }
-  
+
   // Noise contribution from last corner
-  vec3 Pf3 = Pf0 - vec3(1.0-3.0*G3);
-  float perm3 = texture(permTexture, Pi.xy + vec2(ONE, ONE)).a;
-  vec3  grad3 = texture(permTexture, vec2(perm3, Pi.z + ONE)).rgb * 4.0 - 1.0;
+  vec3 Pf3 = Pf0 - vec3(1.0-3.0*0.166666666667);
+  float perm3 = texture2D(permTexture, Pi.xy + vec2(0.00390625, 0.00390625)).a;
+  vec3  grad3 = texture2D(permTexture, vec2(perm3, Pi.z + 0.00390625)).rgb * 4.0 - 1.0;
   float t3 = 0.6 - dot(Pf3, Pf3);
   float n3;
   if(t3 < 0.0) n3 = 0.0;

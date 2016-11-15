@@ -18,7 +18,7 @@ SOURCES +=  \
 HEADERS  += \
             src/openglwindow.h \
             src/glshaderwindow.h \
-    src/perlinNoise.h
+            src/perlinNoise.h
 
 RESOURCES += shaders/core-profile.qrc
 OTHER_FILES +=  \
@@ -39,6 +39,8 @@ OTHER_FILES +=  \
     shaders/4_earth.vert \
     shaders/5_envMap.frag \
     shaders/5_envMap.vert \
+    shaders/cookTorrance.vert \
+    shaders/cookTorrance.frag \
     shaders/noiseAlone.frag \
     shaders/noiseAlone.vert \
     shaders/h_shadowMapGeneration.frag \
@@ -49,3 +51,9 @@ OTHER_FILES +=  \
 INCLUDEPATH += ../trimesh2/include/
 
 LIBS += -L../../SIA_Projects/trimesh2/lib -ltrimesh
+
+DISTFILES += \
+    shaders/cookTorrance.frag \
+    shaders/cookTorrance.vert \
+    shaders/gooch.frag \
+    shaders/gooch.vert

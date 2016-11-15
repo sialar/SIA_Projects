@@ -3,6 +3,8 @@
 uniform mat4 matrix;
 uniform mat4 perspective;
 uniform mat3 normalMatrix;
+uniform mat4 worldToLightSpace;
+uniform mat4 lightPerspective;
 uniform bool noColor;
 uniform vec3 lightPosition;
 
@@ -12,9 +14,10 @@ in vec3 color;
 
 out vec3 eyeVector;
 out vec3 lightVector;
-out vec4 vertColor;
 out vec3 vertNormal;
-r
+out vec4 vertColor;
+out vec4 lightSpace;
+
 void main( void )
 {
     if (noColor) vertColor = vec4(1.0, 1.0, 1.0, 1.0 );
@@ -25,8 +28,6 @@ void main( void )
     lightVector = normalize(lightPosition.xyz - vertPosition.xyz);
     eyeVector = normalize(eyePosition.xyz - vertPosition.xyz);
     vertNormal = normalize(normalMatrix * normal);
-
-    vertColor = normalize(eyePosition - vertPosition);
 
     gl_Position = perspective * matrix * vec4(vertex, 1.0);
 }

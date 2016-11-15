@@ -59,7 +59,11 @@ OBJECTS       = main.o \
 		qrc_core-profile.o \
 		moc_openglwindow.o \
 		moc_glshaderwindow.o
-DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
+DIST          = shaders/cookTorrance.frag \
+		shaders/cookTorrance.vert \
+		shaders/gooch.frag \
+		shaders/gooch.vert \
+		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/common/unix.conf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/common/linux.conf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/common/sanitize.conf \
@@ -317,19 +321,23 @@ compiler_rcc_clean:
 	-$(DEL_FILE) qrc_core-profile.cpp
 qrc_core-profile.cpp: shaders/core-profile.qrc \
 		shaders/5_envMap.vert \
+		shaders/gooch.frag \
+		shaders/1_simple.vert \
+		shaders/h_shadowMapGeneration.vert \
 		shaders/2_phong.frag \
 		shaders/noiseAlone.frag \
-		shaders/h_shadowMapGeneration.vert \
+		shaders/4_earth.frag \
+		shaders/3_textured.vert \
+		shaders/cookTorrance.vert \
 		shaders/1_simple.frag \
+		shaders/5_envMap.frag \
+		shaders/h_shadowMapGeneration.frag \
+		shaders/gooch.vert \
+		shaders/2_phong.vert \
 		shaders/3_textured.frag \
 		shaders/4_earth.vert \
-		shaders/5_envMap.frag \
-		shaders/2_phong.vert \
 		shaders/noiseAlone.vert \
-		shaders/1_simple.vert \
-		shaders/3_textured.vert \
-		shaders/h_shadowMapGeneration.frag \
-		shaders/4_earth.frag
+		shaders/cookTorrance.frag
 	/usr/lib/x86_64-linux-gnu/qt5/bin/rcc -name core-profile shaders/core-profile.qrc -o qrc_core-profile.cpp
 
 compiler_moc_header_make_all: moc_openglwindow.cpp moc_glshaderwindow.cpp

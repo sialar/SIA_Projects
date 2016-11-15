@@ -14,5 +14,9 @@
         <file>noiseAlone.vert</file>
         <file>h_shadowMapGeneration.frag</file>
         <file>h_shadowMapGeneration.vert</file>
+        <file>cookTorrance.frag</file>
+        <file>cookTorrance.vert</file>
+        <file>gooch.frag</file>
+        <file>gooch.vert</file>
     </qresource>
 </RCC>

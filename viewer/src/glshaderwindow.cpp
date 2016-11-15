@@ -24,7 +24,7 @@ glShaderWindow::glShaderWindow(QWindow *parent)
       m_program(0), ground_program(0), shadowMapGenerationProgram(0),
       g_vertices(0), g_normals(0), g_texcoords(0), g_colors(0), g_indices(0),
       environmentMap(0), texture(0), normalMap(0), permTexture(0), pixels(0), mouseButton(Qt::NoButton), auxWidget(0),
-      blinnPhong(true), transparent(true), eta(1.5), lightIntensity(1.0f), shininess(50.0f), lightDistance(5.0f), groundDistance(0.78),
+      blinnPhong(true), transparent(true), eta(1.5), roughness(0.3), lightIntensity(1.0f), shininess(50.0f), lightDistance(5.0f), groundDistance(0.78),
       shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
       m_indexBuffer(QOpenGLBuffer::IndexBuffer), ground_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
@@ -195,6 +195,12 @@ void glShaderWindow::updateEta(int etaSliderValue)
     renderNow();
 }
 
+void glShaderWindow::updateRoughness(int roughnessSliderValue)
+{
+    roughness = roughnessSliderValue/100.0;
+    renderNow();
+}
+
 void glShaderWindow::showAuxWindow()
 {
     if (auxWidget)
@@ -284,6 +290,24 @@ void glShaderWindow::showAuxWindow()
     hboxEta->addWidget(etaLabelValue);
     outer->addLayout(hboxEta);
     outer->addWidget(etaSlider);
+
+    // Roughness slider
+    QSlider* roughnessSlider = new QSlider(Qt::Horizontal);
+    roughnessSlider->setTickPosition(QSlider::TicksBelow);
+    //roughnessSlider->setTickInterval(100);
+    roughnessSlider->setMinimum(0);
+    roughnessSlider->setMaximum(100);
+    roughnessSlider->setSliderPosition(roughness*100);
+    connect(roughnessSlider,SIGNAL(valueChanged(int)),this,SLOT(updateRoughness(int)));
+    QLabel* roughnessLabel = new QLabel("Roughness  (microfacet distribution) * 100 =");
+    QLabel* roughnessLabelValue = new QLabel();
+    roughnessLabelValue->setNum(roughness * 100);
+    connect(roughnessSlider,SIGNAL(valueChanged(int)),roughnessLabelValue,SLOT(setNum(int)));
+    QHBoxLayout *hboxRoughness= new QHBoxLayout;
+    hboxRoughness->addWidget(roughnessLabel);
+    hboxRoughness->addWidget(roughnessLabelValue);
+    outer->addLayout(hboxRoughness);
+    outer->addWidget(roughnessSlider);
 
     auxWidget->setLayout(outer);
     auxWidget->show();
@@ -909,13 +933,13 @@ void glShaderWindow::render()
         // set up camera position in light source:
         // TODO_TP3: you must initialize these two matrices.
         lightCoordMatrix.setToIdentity();
-        lightCoordMatrix.lookAt(lightPosition, center ,QVector3D(0,0,1));
-        //lightCoordMatrix.ortho(-1,1,-1,1,-10,20);
+        lightCoordMatrix.lookAt(lightPosition, center, QVector3D(0,1,0));
         lightPerspective.setToIdentity();
         float r = modelMesh->bsphere.r;
-        float fovy = (90.0/M_PI) * atan2(lightDistance*r,r);
+        float fovy = (60.0/M_PI) * atan2(lightDistance*r,r);
         float radius = modelMesh->bsphere.r;
         lightPerspective.perspective(fovy, (float)width()/height(), 0.1 * radius, 20 * radius);
+        //lightPerspective.ortho(-10,10,-10,10,-10,20);
 
         shadowMapGenerationProgram->setUniformValue("matrix", lightCoordMatrix);
         shadowMapGenerationProgram->setUniformValue("perspective", lightPerspective);
@@ -959,12 +983,14 @@ void glShaderWindow::render()
     m_program->setUniformValue("lightIntensity", lightIntensity);
     m_program->setUniformValue("shininess", shininess);
     m_program->setUniformValue("eta", eta);
+    m_program->setUniformValue("roughness", roughness);
     m_program->setUniformValue("radius", modelMesh->bsphere.r);
     // Shadow Mapping
     if (m_program->uniformLocation("shadowMap") != -1) {
         m_program->setUniformValue("shadowMap", shadowMap->texture());
         // TODO_TP3: send the right transform here
-        m_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
+        //m_program->setUniformValue("worldToLightSpace", lightCoordMatrix);
+        //m_program->setUniformValue("lightPerspective", lightPerspective);
     }
 
     m_vao.bind();
@@ -985,13 +1011,14 @@ void glShaderWindow::render()
         ground_program->setUniformValue("transparent", transparent);
         ground_program->setUniformValue("lightIntensity", lightIntensity);
         ground_program->setUniformValue("shininess", shininess);
+        ground_program->setUniformValue("roughness", roughness);
         ground_program->setUniformValue("eta", eta);
         ground_program->setUniformValue("radius", modelMesh->bsphere.r);
         if (ground_program->uniformLocation("colorTexture") != -1) ground_program->setUniformValue("colorTexture", 0);
         if (ground_program->uniformLocation("shadowMap") != -1) {
             ground_program->setUniformValue("shadowMap", shadowMap->texture());
             // TODO_TP3: send the right transform here
-            ground_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
+            //ground_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
         }
         ground_vao.bind();
         glDrawElements(GL_TRIANGLES, g_numIndices, GL_UNSIGNED_INT, 0);
