@@ -907,6 +907,8 @@ void glShaderWindow::render()
 
     QMatrix4x4 lightCoordMatrix;
     QMatrix4x4 lightPerspective;
+    float nearPlane;
+	float farPlane;
     if ((ground_program->uniformLocation("shadowMap") != -1) || (m_program->uniformLocation("shadowMap") != -1) ){
         glActiveTexture(GL_TEXTURE2);
         glViewport(0, 0, shadowMapDimension, shadowMapDimension);
@@ -937,7 +939,17 @@ void glShaderWindow::render()
         float radius = modelMesh->bsphere.r;
         float fovy = 2.0 * (180.0/M_PI) * atan2(radius, lightDistance);
 
-		lightPerspective.perspective(fovy, 1.0, (lightDistance * radius - radius) * 0.7, (lightDistance * radius + radius) * 1.5);
+		//lemming
+		float nearPlane = (lightDistance * radius - radius) * 0.7;
+		float farPlane = (lightDistance * radius + radius) * 1.5;
+		lightPerspective.perspective(fovy, 1.0, nearPlane, farPlane); 
+		
+		//buddha
+		/*
+		float nearPlane = 300;
+		float farPlane = 800;
+		lightPerspective.perspective(40, 1.0, nearPlane, farPlane); 
+		*/
 
         shadowMapGenerationProgram->setUniformValue("matrix", lightCoordMatrix);
         shadowMapGenerationProgram->setUniformValue("perspective", lightPerspective);
@@ -988,6 +1000,8 @@ void glShaderWindow::render()
         m_program->setUniformValue("shadowMap", shadowMap->texture());
         // TODO_TP3: send the right transform here
         m_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
+        m_program->setUniformValue("nearPlane", nearPlane);
+        m_program->setUniformValue("farPlane", farPlane);
     }
 
     m_vao.bind();
@@ -1016,6 +1030,8 @@ void glShaderWindow::render()
             ground_program->setUniformValue("shadowMap", shadowMap->texture());
             // TODO_TP3: send the right transform here
             ground_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
+            m_program->setUniformValue("nearPlane", nearPlane);
+		    m_program->setUniformValue("farPlane", farPlane);
         }
         ground_vao.bind();
         glDrawElements(GL_TRIANGLES, g_numIndices, GL_UNSIGNED_INT, 0);
