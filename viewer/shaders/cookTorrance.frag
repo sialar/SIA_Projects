@@ -1,4 +1,4 @@
-#version 410
+#version 130
 
 uniform float lightIntensity;
 uniform float roughness;   // 0 : smooth, 1: rough

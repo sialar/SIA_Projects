@@ -140,7 +140,7 @@ int main( int argc, char* argv[] )
     QSurfaceFormat format;
     format.setSamples(16); // for anti-aliasing
     format.setDepthBufferSize(24);
-    format.setVersion(4,1);
+    format.setVersion(3,0);
     format.setProfile(QSurfaceFormat::CoreProfile);
 
     // Create GL shader window and add it to application

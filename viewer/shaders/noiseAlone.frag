@@ -1,4 +1,4 @@
-#version 410
+#version 130
 /*
  * 3D Perlin noise (simplex), in a GLSL fragment shader.
  *

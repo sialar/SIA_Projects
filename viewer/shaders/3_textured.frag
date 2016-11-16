@@ -1,4 +1,4 @@
-#version 410
+#version 130
 
 uniform float lightIntensity;
 uniform sampler2D colorTexture;
