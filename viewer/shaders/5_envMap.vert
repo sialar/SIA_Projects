@@ -14,7 +14,7 @@ out vec3 eyeVector;
 out vec3 lightVector;
 out vec4 vertColor;
 out vec3 vertNormal;
-r
+
 void main( void )
 {
     if (noColor) vertColor = vec4(1.0, 1.0, 1.0, 1.0 );

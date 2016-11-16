@@ -52,12 +52,18 @@ THE SOFTWARE.
  */
 uniform sampler2D permTexture;
 uniform float radius; // object size.
-
+uniform float lightIntensity;
+uniform bool blinnPhong;
+uniform float shininess;
+uniform float eta;
 /*
  * Both 2D and 3D texture coordinates are defined, for testing purposes.
  */
 in vec3 vertPos;
 in vec4 vertColor;
+in vec3 eyeVector;
+in vec3 lightVector;
+in vec3 vertNormal;
 
 out vec4 fragColor;
 
@@ -214,7 +220,7 @@ vec3 perlinNoise(in vec3 v) {
     vec3 amplitude = vec3(1);
     int octaves = 5;
     float lacunarity = 2;
-    float persistence = 0.5;
+    float persistence = 0.4;
     v *= 8.0;
     for (int n = 0; n < octaves ; n++) {
         val += snoise(v) * amplitude;
@@ -224,7 +230,56 @@ vec3 perlinNoise(in vec3 v) {
     return val;
 }
 
+vec4 computeIllumination(float ka, float kd, float ks, vec4 color)
+{
+    // Normalize vectors
+    vec3 N = normalize(vertNormal);
+    vec3 L = normalize(lightVector);
+    vec3 V = normalize(eyeVector);
+    vec3 R = normalize(2 * dot(N,L) * N - L);
+
+    // Modèle de Phong
+    vec4 ambiant = ka * color * lightIntensity;
+    vec4 diffuse = kd * color * max( dot(N,L),0 ) * lightIntensity;
+    vec4 phongSpecular = ks * color * pow( max( dot(R,V),0 ), shininess ) * lightIntensity;
+
+    // Modèle de Blinn-Phong
+    vec3 h = normalize(L + V);
+    vec4 blinnPhongSpecular = ks * color * pow( max( dot(N,h),0 ), 4 * shininess) * lightIntensity;
+
+    // Indice de Fresnel
+    float F0 = pow(1-eta,2) / pow(1+eta,2);
+    float F = F0 + (1-F0) * pow( (1- dot(h,V)), 5 );
+
+    return (ambiant + diffuse + F * ( (blinnPhong) ? blinnPhongSpecular : phongSpecular));
+}
+
+// Retourne l'indice de la couleur qui correspond à la valeur "value" dans une rampe infinie ayant "step" comme pas.
+int computeColor(int colorsLength, float value, float step)
+{
+    for (int k=0; k<floor(1/step); k++)
+        for (int l=0; l< colorsLength; l++)
+            if (value > l*step + 5*k*step && value <= (l+1)*step + 5*k*step)
+                return l;
+}
+
 void main( void )
 {
-  fragColor = vertColor * vec4(0.5 + 0.5 * perlinNoise(vertPos.xyz/radius), 1.0);
+    // Define the colors ramp
+    vec4 colors[5];
+    colors[0] = vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
+    colors[1] = vec4(0.20, 0.20, 0.30, 1.0); /* medium blue      */
+    colors[2] = vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
+    colors[3] = vec4(0.15, 0.15, 0.26, 1.0); /* medium dark blue */
+    colors[4] = vec4(0.10, 0.10, 0.20, 1.0); /* dark blue        */
+
+    float noiseValue = 0.5 + 0.5 * perlinNoise(vertPos.xyz/radius).x;
+
+    // 1ere partie
+    int colorIndex = computeColor(5,noiseValue,0.2);
+    fragColor = computeIllumination(0.2,0.2,0.6,colors[colorIndex]);
+
+    // 2eme partie (materiau plus structuré)
+    colorIndex = computeColor( 5, noiseValue * abs(vertPos.x)/10, 0.1);
+    fragColor = computeIllumination(0.2,0.2,0.6,colors[colorIndex]);
 }

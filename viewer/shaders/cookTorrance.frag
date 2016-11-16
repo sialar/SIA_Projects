@@ -44,13 +44,8 @@ void main( void )
         // beckmann distribution function
         float r1_b = 1.0 / ( 4.0 * mSquared * pow(NdotH, 4.0));
         float r2_b = (NdotH * NdotH - 1.0) / (mSquared * NdotH * NdotH);
-        // standard normal (gaussian) distribution function
-        float variance = mSquared;
-        float mean = 0;
-        float r1_g = 1 / sqrt(2 * 3.141592 * variance);
-        float r2_g = - pow(NdotH - mean,2) / (2 * variance);
 
-        float roughnessValue = r1_g * exp(r2_g);
+        float roughnessValue = r1_b * exp(r2_b);
 
         // fresnel
         // Schlick approximation
