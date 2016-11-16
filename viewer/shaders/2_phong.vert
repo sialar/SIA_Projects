@@ -4,7 +4,6 @@ uniform mat4 matrix;
 uniform mat4 perspective;
 uniform mat3 normalMatrix;
 uniform mat4 worldToLightSpace;
-uniform mat4 lightPerspective;
 uniform bool noColor;
 uniform vec3 lightPosition;
 
@@ -29,15 +28,8 @@ void main( void )
     eyeVector = normalize(eyePosition.xyz - vertPosition.xyz);
     vertNormal = normalize(normalMatrix * normal);
 
-    mat4 biasMatrix = mat4(
-    0.5, 0.0, 0.0, 0.0,
-    0.0, 0.5, 0.0, 0.0,
-    0.0, 0.0, 0.5, 0.0,
-    0.5, 0.5, 0.5, 1.0
-    );
+    vec4 worldCoords = vec4(vertex, 1.0);
 
-    vec4 worldCoords = matrix * vec4(vertex, 1.0);
-
-    lightSpace = lightPerspective * worldToLightSpace * worldCoords;
-    gl_Position = perspective * worldCoords;
+    lightSpace = worldToLightSpace * worldCoords;
+    gl_Position = perspective * matrix * worldCoords;
 }

@@ -41,9 +41,11 @@ vec4 computeIllumination(float ka, float kd, float ks, float visibility)
 
 void main( void )
 {
+	vec3 lightSpaceScaled = ((lightSpace.xyz / lightSpace.w) + 1.0) / 2;
     float visibility = 1.0;
-    vec4 sm = texture2D(shadowMap, lightSpace.xy)* 2.f - vec4(1.f);
-    if (sm.z < lightSpace.z)
+	vec4 sm = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.0 - lightSpaceScaled.y));
+
+    if (sm.z < lightSpaceScaled.z && lightSpace.w > 0 && lightSpaceScaled.x > 0 && lightSpaceScaled.y > 0 &&lightSpaceScaled.z > 0 && lightSpaceScaled.x < 1 && lightSpaceScaled.y < 1 && lightSpaceScaled.z < 1)
         visibility = 0.0;
     fragColor = computeIllumination(0.3,0.3,0.4,visibility);
 }

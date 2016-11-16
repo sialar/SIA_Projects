@@ -709,7 +709,7 @@ void glShaderWindow::initialize()
         m_program->release();
         delete(m_program);
     }
-    m_program = prepareShaderProgram(":/1_simple.vert", ":/1_simple.frag");
+    m_program = prepareShaderProgram(":/2_phong.vert", ":/2_phong.frag");
     if (ground_program) {
         ground_program->release();
         delete(ground_program);
@@ -932,14 +932,12 @@ void glShaderWindow::render()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // set up camera position in light source:
         // TODO_TP3: you must initialize these two matrices.
-        lightCoordMatrix.setToIdentity();
-        lightCoordMatrix.lookAt(lightPosition, center, QVector3D(0,1,0));
-        lightPerspective.setToIdentity();
-        float r = modelMesh->bsphere.r;
-        float fovy = (60.0/M_PI) * atan2(lightDistance*r,r);
+        lightCoordMatrix.lookAt(lightPosition, center, QVector3D(0,0,1));
+
         float radius = modelMesh->bsphere.r;
-        lightPerspective.perspective(fovy, (float)width()/height(), 0.1 * radius, 20 * radius);
-        //lightPerspective.ortho(-10,10,-10,10,-10,20);
+        float fovy = 2.0 * (180.0/M_PI) * atan2(radius, lightDistance);
+
+		lightPerspective.perspective(fovy, 1.0, (lightDistance * radius - radius) * 0.7, (lightDistance * radius + radius) * 1.5);
 
         shadowMapGenerationProgram->setUniformValue("matrix", lightCoordMatrix);
         shadowMapGenerationProgram->setUniformValue("perspective", lightPerspective);
@@ -966,7 +964,7 @@ void glShaderWindow::render()
 #endif
         glClearColor( 0.2f, 0.2f, 0.2f, 1.0f );
         glEnable(GL_CULL_FACE);
-        glCullFace (GL_BACK); // cull back face
+        glCullFace(GL_BACK); // cull back face
     }
     m_program->bind();
     const qreal retinaScale = devicePixelRatio();
@@ -989,8 +987,7 @@ void glShaderWindow::render()
     if (m_program->uniformLocation("shadowMap") != -1) {
         m_program->setUniformValue("shadowMap", shadowMap->texture());
         // TODO_TP3: send the right transform here
-        //m_program->setUniformValue("worldToLightSpace", lightCoordMatrix);
-        //m_program->setUniformValue("lightPerspective", lightPerspective);
+        m_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
     }
 
     m_vao.bind();
@@ -1018,7 +1015,7 @@ void glShaderWindow::render()
         if (ground_program->uniformLocation("shadowMap") != -1) {
             ground_program->setUniformValue("shadowMap", shadowMap->texture());
             // TODO_TP3: send the right transform here
-            //ground_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
+            ground_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
         }
         ground_vao.bind();
         glDrawElements(GL_TRIANGLES, g_numIndices, GL_UNSIGNED_INT, 0);

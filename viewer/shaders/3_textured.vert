@@ -3,6 +3,7 @@
 uniform mat4 matrix;
 uniform mat4 perspective;
 uniform mat3 normalMatrix;
+uniform mat4 worldToLightSpace;
 uniform bool noColor;
 uniform vec3 lightPosition;
 
@@ -16,6 +17,7 @@ out vec3 lightVector;
 out vec4 vertColor;
 out vec3 vertNormal;
 out vec2 textCoords;
+out vec4 lightSpace;
 
 void main( void )
 {
@@ -30,6 +32,9 @@ void main( void )
 
     textCoords = texcoords;
 
-    gl_Position = perspective * matrix * vec4(vertex, 1.0);
+    vec4 worldCoords = vec4(vertex, 1.0);
+
+    lightSpace = worldToLightSpace * worldCoords;
+    gl_Position = perspective * matrix * worldCoords;
 }
 
