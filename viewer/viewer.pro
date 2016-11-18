@@ -40,7 +40,6 @@ OTHER_FILES +=  \
     shaders/5_envMap.frag \
     shaders/5_envMap.vert \
     shaders/cookTorrance.vert \
-    shaders/cookTorrance.frag \
     shaders/noiseAlone.frag \
     shaders/noiseAlone.vert \
     shaders/h_shadowMapGeneration.frag \
@@ -53,7 +52,6 @@ INCLUDEPATH += ../trimesh2/include/
 LIBS += -L../../SIA_Projects/trimesh2/lib -ltrimesh
 
 DISTFILES += \
-    shaders/cookTorrance.frag \
     shaders/cookTorrance.vert \
-    shaders/gooch.frag \
-    shaders/gooch.vert
+    shaders/illumination.frag \
+    shaders/illumination.vert

@@ -24,8 +24,8 @@ glShaderWindow::glShaderWindow(QWindow *parent)
       m_program(0), ground_program(0), shadowMapGenerationProgram(0),
       g_vertices(0), g_normals(0), g_texcoords(0), g_colors(0), g_indices(0),
       environmentMap(0), texture(0), normalMap(0), permTexture(0), pixels(0), mouseButton(Qt::NoButton), auxWidget(0),
-      blinnPhong(true), transparent(true), eta(0), roughness(0.3), lightIntensity(1.5f), shininess(50.0f), lightDistance(5.0f), groundDistance(0.78),
-      shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
+      blinnPhong(true), transparent(true), gooch(false), cookTorrance(false), eta(0), roughness(0.3), lightIntensity(1.5f),
+      shininess(50.0f), lightDistance(5.0f), groundDistance(0.78), shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
       m_indexBuffer(QOpenGLBuffer::IndexBuffer), ground_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
     m_fragShaderSuffix << "*.frag" << "*.fs";
@@ -156,12 +156,32 @@ void glShaderWindow::openNewEnvMap() {
 void glShaderWindow::phongClicked()
 {
     blinnPhong = false;
+    cookTorrance = false;
+    gooch = false;
     renderNow();
 }
 
 void glShaderWindow::blinnPhongClicked()
 {
     blinnPhong = true;
+    cookTorrance = false;
+    gooch = false;
+    renderNow();
+}
+
+void glShaderWindow::cookTorranceClicked()
+{
+    blinnPhong = false;
+    cookTorrance = true;
+    gooch = false;
+    renderNow();
+}
+
+void glShaderWindow::goochClicked()
+{
+    blinnPhong = false;
+    cookTorrance = false;
+    gooch = true;
     renderNow();
 }
 
@@ -214,14 +234,46 @@ void glShaderWindow::showAuxWindow()
     QGroupBox *groupBox = new QGroupBox("Specular Model selection");
     QRadioButton *radio1 = new QRadioButton("Phong");
     QRadioButton *radio2 = new QRadioButton("Blinn-Phong");
-    if (blinnPhong) radio2->setChecked(true);
-    else radio1->setChecked(true);
+    QRadioButton *radio3 = new QRadioButton("Cook-Torrance");
+    QRadioButton *radio4 = new QRadioButton("Gooch");
+    if (blinnPhong)
+    {
+        radio1->setChecked(false);
+        radio2->setChecked(true);
+        radio3->setChecked(false);
+        radio4->setChecked(false);
+    }
+    else if (cookTorrance)
+    {
+        radio1->setChecked(false);
+        radio2->setChecked(false);
+        radio3->setChecked(true);
+        radio4->setChecked(false);
+    }
+    else if (gooch)
+    {
+        radio1->setChecked(false);
+        radio2->setChecked(false);
+        radio3->setChecked(false);
+        radio4->setChecked(true);
+    }
+    else
+    {
+        radio1->setChecked(true);
+        radio2->setChecked(false);
+        radio3->setChecked(false);
+        radio4->setChecked(false);
+    }
     connect(radio1, SIGNAL(clicked()), this, SLOT(phongClicked()));
     connect(radio2, SIGNAL(clicked()), this, SLOT(blinnPhongClicked()));
+    connect(radio3, SIGNAL(clicked()), this, SLOT(cookTorranceClicked()));
+    connect(radio4, SIGNAL(clicked()), this, SLOT(goochClicked()));
 
     QVBoxLayout *vbox = new QVBoxLayout;
     vbox->addWidget(radio1);
     vbox->addWidget(radio2);
+    vbox->addWidget(radio3);
+    vbox->addWidget(radio4);
     groupBox->setLayout(vbox);
     buttons->addWidget(groupBox);
 
@@ -989,6 +1041,8 @@ void glShaderWindow::render()
     m_program->setUniformValue("normalMatrix", m_matrix[0].normalMatrix());
     m_program->setUniformValue("lightIntensity", 1.0f);
     m_program->setUniformValue("blinnPhong", blinnPhong);
+    m_program->setUniformValue("cookTorrance", cookTorrance);
+    m_program->setUniformValue("gooch", gooch);
     m_program->setUniformValue("transparent", transparent);
     m_program->setUniformValue("lightIntensity", lightIntensity);
     m_program->setUniformValue("shininess", shininess);
@@ -1019,6 +1073,8 @@ void glShaderWindow::render()
         ground_program->setUniformValue("normalMatrix", m_matrix[0].normalMatrix());
         ground_program->setUniformValue("lightIntensity", 1.0f);
         ground_program->setUniformValue("blinnPhong", blinnPhong);
+        ground_program->setUniformValue("cookTorrance", cookTorrance);
+        ground_program->setUniformValue("gooch", gooch);
         ground_program->setUniformValue("transparent", transparent);
         ground_program->setUniformValue("lightIntensity", lightIntensity);
         ground_program->setUniformValue("shininess", shininess);
