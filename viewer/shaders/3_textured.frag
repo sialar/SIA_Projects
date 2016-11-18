@@ -53,9 +53,9 @@ void main( void )
 	bias = clamp(bias, 0, 0.01);
 	
 	float texelSize = 1.0 / textureSize(shadowMap, 0).x;
-	float lightSize = 10.0;
-	float SMSize = min(lightSize * lightSpaceScaled.z * farPlane / (lightSpaceScaled.z * farPlane + nearPlane), 5.f);
-	SMSize = max(2 * floor(SMSize/2), 1);
+	float lightSize = 15.f;
+	float filterMaxSize = 20.f;
+	float SMSize = min(lightSize * lightSpaceScaled.z * (farPlane - nearPlane) / (lightSpaceScaled.z * (farPlane - nearPlane) + nearPlane), filterMaxSize);
 	
 	float depth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.0 - lightSpaceScaled.y)).z;
 	float blockerDepthAvg = 0.f;
@@ -64,7 +64,7 @@ void main( void )
 
 	
 	if (lightSpace.w > 0 && lightSpaceScaled.x > 0 && lightSpaceScaled.y > 0 && lightSpaceScaled.z > 0 && lightSpaceScaled.x < 1 && lightSpaceScaled.y < 1 && lightSpaceScaled.z < 1){
-		for(float i =  -SMSize/2.f; i <= SMSize/2.f; i = i + 1){
+		for(float i = -SMSize/2.f; i <= SMSize/2.f; i = i + 1){
 			for(float j = -SMSize/2.f; j <= SMSize/2.f; j = j + 1){
 				blockerDepth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.0 - lightSpaceScaled.y) + texelSize * vec2(i, j)).z;
 				if(blockerDepth < depth){
@@ -74,19 +74,22 @@ void main( void )
 			}
 		}
 		blockerDepthAvg /= blockerNumber;
+		
+		float filterSize = min(lightSize * (lightSpaceScaled.z - blockerDepthAvg)/blockerDepthAvg, filterMaxSize);
 			
-		float filterSize = min(lightSize * (lightSpaceScaled.z - blockerDepthAvg)/blockerDepthAvg, 5.f);
-		filterSize = max(1, 2 * floor(filterSize/2));
-			
-	// PCF
+		// PCF
+		float potentialBlocker = 0.f;
+		blockerNumber = 0.f;
 		for(float i = -filterSize/2.f; i<=filterSize/2.f; i = i + 1){
 			for(float j = -filterSize/2.f; j<=filterSize/2.f; j = j + 1){
 				depth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.f - lightSpaceScaled.y) + texelSize * vec2(i, j)).z;
+				potentialBlocker++;
 				if(depth < lightSpaceScaled.z - bias){
-					visibility -= 1.f/(filterSize * filterSize);
+					blockerNumber++;
 				}
 			}
 		}
+		visibility -= blockerNumber/potentialBlocker;
 	}
 	
     vec4 texColor = texture2D(colorTexture, textCoords);
