@@ -1,4 +1,4 @@
-DESTDIR = ../../SIA_TP/trimesh2/lib
+DESTDIR = ../../SIA_Projects/trimesh2/lib
 
 win32 {
     TEMPLATE = vclib
@@ -63,4 +63,3 @@ libsrc/remove.cc \
 libsrc/reorder_verts.cc \
 libsrc/shared.cc \
 libsrc/subdiv.cc
-

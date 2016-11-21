@@ -33,10 +33,10 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 DISTNAME      = myViewer1.0.0
-DISTDIR = /home/sialar/Ensimag/3A_Master/SIA/SIA_TP/viewer/.tmp/myViewer1.0.0
+DISTDIR = /home/sialar/Ensimag/3A_Master/SIA/SIA_Projects/viewer/.tmp/myViewer1.0.0
 LINK          = g++
 LFLAGS        = -m64 -Wno-unknown-pragmas -fopenmp -Wl,-O1
-LIBS          = $(SUBLIBS) -L/usr/X11R6/lib64 -L../../SIA_TP/trimesh2/lib -ltrimesh -lQt5OpenGL -lQt5Widgets -lQt5Gui -lQt5Core -lGL -lpthread 
+LIBS          = $(SUBLIBS) -L/usr/X11R6/lib64 -L../../SIA_Projects/trimesh2/lib -ltrimesh -lQt5OpenGL -lQt5Widgets -lQt5Gui -lQt5Core -lGL -lpthread 
 AR            = ar cqs
 RANLIB        = 
 SED           = sed
@@ -100,6 +100,7 @@ DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/qt_config.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qmake.conf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_post.prf \
+		../.qmake.stash \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/exclusive_builds.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/default_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/resolve_config.prf \
@@ -191,6 +192,7 @@ Makefile: viewer.pro /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qmake.co
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/qt_config.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qmake.conf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_post.prf \
+		../.qmake.stash \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/exclusive_builds.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/default_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/resolve_config.prf \
@@ -254,6 +256,7 @@ Makefile: viewer.pro /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qmake.co
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/qt_config.prf:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64/qmake.conf:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_post.prf:
+../.qmake.stash:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/exclusive_builds.prf:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/default_pre.prf:
 /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/resolve_config.prf:
@@ -323,20 +326,22 @@ qrc_core-profile.cpp: shaders/core-profile.qrc \
 		shaders/1_simple.frag \
 		shaders/3_textured.frag \
 		shaders/4_earth.vert \
+		shaders/illumination.vert \
 		shaders/5_envMap.frag \
 		shaders/2_phong.vert \
 		shaders/noiseAlone.vert \
 		shaders/1_simple.vert \
 		shaders/3_textured.vert \
 		shaders/h_shadowMapGeneration.frag \
-		shaders/4_earth.frag
+		shaders/4_earth.frag \
+		shaders/illumination.frag
 	/usr/lib/x86_64-linux-gnu/qt5/bin/rcc -name core-profile shaders/core-profile.qrc -o qrc_core-profile.cpp
 
 compiler_moc_header_make_all: moc_openglwindow.cpp moc_glshaderwindow.cpp
 compiler_moc_header_clean:
 	-$(DEL_FILE) moc_openglwindow.cpp moc_glshaderwindow.cpp
 moc_openglwindow.cpp: src/openglwindow.h
-	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64 -I/home/sialar/Ensimag/3A_Master/SIA/SIA_TP/viewer -I/home/sialar/Ensimag/3A_Master/SIA/SIA_TP/trimesh2/include -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtOpenGL -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include src/openglwindow.h -o moc_openglwindow.cpp
+	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64 -I/home/sialar/Ensimag/3A_Master/SIA/SIA_Projects/viewer -I/home/sialar/Ensimag/3A_Master/SIA/SIA_Projects/trimesh2/include -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtOpenGL -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/6 -I/usr/include/x86_64-linux-gnu/c++/6 -I/usr/include/c++/6/backward -I/usr/lib/gcc/x86_64-linux-gnu/6/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/6/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include src/openglwindow.h -o moc_openglwindow.cpp
 
 moc_glshaderwindow.cpp: src/openglwindow.h \
 		../trimesh2/include/TriMesh.h \
@@ -345,7 +350,7 @@ moc_glshaderwindow.cpp: src/openglwindow.h \
 		../trimesh2/include/strutil.h \
 		../trimesh2/include/Color.h \
 		src/glshaderwindow.h
-	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64 -I/home/sialar/Ensimag/3A_Master/SIA/SIA_TP/viewer -I/home/sialar/Ensimag/3A_Master/SIA/SIA_TP/trimesh2/include -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtOpenGL -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include src/glshaderwindow.h -o moc_glshaderwindow.cpp
+	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) -I/usr/lib/x86_64-linux-gnu/qt5/mkspecs/linux-g++-64 -I/home/sialar/Ensimag/3A_Master/SIA/SIA_Projects/viewer -I/home/sialar/Ensimag/3A_Master/SIA/SIA_Projects/trimesh2/include -I/usr/include/x86_64-linux-gnu/qt5 -I/usr/include/x86_64-linux-gnu/qt5/QtOpenGL -I/usr/include/x86_64-linux-gnu/qt5/QtWidgets -I/usr/include/x86_64-linux-gnu/qt5/QtGui -I/usr/include/x86_64-linux-gnu/qt5/QtCore -I/usr/include/c++/6 -I/usr/include/x86_64-linux-gnu/c++/6 -I/usr/include/c++/6/backward -I/usr/lib/gcc/x86_64-linux-gnu/6/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/6/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include src/glshaderwindow.h -o moc_glshaderwindow.cpp
 
 compiler_moc_source_make_all:
 compiler_moc_source_clean:

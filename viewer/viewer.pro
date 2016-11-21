@@ -1,4 +1,4 @@
-DESTDIR = ../../SIA_TP/viewer
+DESTDIR = ../../SIA_Projects/viewer
 QT       += core gui opengl
 
 TARGET = myViewer
@@ -48,5 +48,4 @@ OTHER_FILES +=  \
 # Reference/source: http://gfx.cs.princeton.edu/proj/trimesh2/
 INCLUDEPATH += ../trimesh2/include/
 
-LIBS += -L../../SIA_TP/trimesh2/lib -ltrimesh
-
+LIBS += -L../../SIA_Projects/trimesh2/lib -ltrimesh
