@@ -1,7 +1,7 @@
 #version 130
 
 uniform float lightIntensity;
-uniform float roughness;   // 0 : smooth, 1: rough
+uniform float roughness;
 uniform float shininess;
 uniform float eta;
 uniform bool blinnPhong;
@@ -15,23 +15,23 @@ in vec4 vertColor;
 
 out vec4 fragColor;
 
-vec4 computePhongIllumination(float ka, float kd, float ks, float NdotL, float RdotV, float F)
+vec4 computePhongIllumination(float ka, float kd, float ks, float NdotL, float RdotV, float F, float visibility)
 {
     vec4 ambiant = ka * vertColor * lightIntensity;
     vec4 diffuse = kd * vertColor * NdotL * lightIntensity;
     vec4 specular = ks * vertColor * pow( RdotV, shininess ) * lightIntensity;
-    return ambiant + diffuse + F * specular;
+    return ambiant + visibility * (diffuse + F * specular);
 }
 
-vec4 computeBlinnPhongIllumination(float ka, float kd, float ks, float NdotL, float NdotH, float F)
+vec4 computeBlinnPhongIllumination(float ka, float kd, float ks, float NdotL, float NdotH, float F, float visibility)
 {
     vec4 ambiant = ka * vertColor * lightIntensity;
     vec4 diffuse = kd * vertColor * NdotL * lightIntensity;
     vec4 specular = ks * vertColor * pow( NdotH, 4 * shininess ) * lightIntensity;
-    return ambiant + diffuse + F * specular;
+    return ambiant + visibility * (diffuse + F * specular);
 }
 
-vec4 computeCookTorranceIllumination(float NdotH,float NdotV,float VdotH,float NdotL,float F,float k)
+vec4 computeCookTorranceIllumination(float NdotH,float NdotV,float VdotH,float NdotL,float F,float k, float visibility)
 {
     float mSquared = roughness * roughness;
     mSquared = (mSquared==0.0) ? 0.001 : mSquared;
@@ -47,10 +47,10 @@ vec4 computeCookTorranceIllumination(float NdotH,float NdotV,float VdotH,float N
     float roughnessValue = r1_b * exp(r2_b);;
 
     float specular = (F * geoAtt * roughnessValue) / (NdotV * NdotL * 3.141592);
-    return lightIntensity * vertColor * NdotL * (k + specular * (1.0 - k));
+    return visibility * lightIntensity * vertColor * NdotL * (k + specular * (0.8 - k));
 }
 
-vec4 computeGoochIllumination(float NdotL, float u_alpha, float u_beta)
+vec4 computeGoochIllumination(float NdotL, float u_alpha, float u_beta, float visibility)
 {
     vec3 u_coolColor = vec3(0,0,1);
     vec3 u_warmColor = vec3(1,0,0);
@@ -66,7 +66,7 @@ vec4 computeGoochIllumination(float NdotL, float u_alpha, float u_beta)
     // interpolation of cool and warm colors according
     // to lighting intensity. The lower the light intensity,
     // the larger part of the cool color is used
-    return vec4(mix(coolColorMod, warmColorMod, interpolationValue),1);
+    return visibility * vec4(mix(coolColorMod, warmColorMod, interpolationValue),1);
 }
 
 void main( void )
@@ -86,13 +86,15 @@ void main( void )
     float F0 = pow(1-eta,2) / pow(1+eta,2);
     float F = F0 + (1-F0) * pow( (1- VdotH), 5 );
 
+    float visibility = 1.0;
+
     if (blinnPhong)
-        fragColor = computeBlinnPhongIllumination(0.3, 0.3, 0.4, NdotL, NdotH, F);
+        fragColor = computeBlinnPhongIllumination(0.3, 0.3, 0.4, NdotL, NdotH, F, visibility);
     else if (cookTorrance)
-        fragColor = computeCookTorranceIllumination(NdotH, NdotV, VdotH, NdotL, F, 0.4);
+        fragColor = computeCookTorranceIllumination(NdotH, NdotV, VdotH, NdotL, F, 0.4, visibility);
     else if (gooch)
-        fragColor = computeGoochIllumination(NdotL, 0.25, 0.5);
+        fragColor = computeGoochIllumination(NdotL, 0.25, 0.5, visibility);
     else
-        fragColor = computePhongIllumination(0.3, 0.3, 0.4, NdotL, RdotV, F);
+        fragColor = computePhongIllumination(0.3, 0.3, 0.4, NdotL, RdotV, F, visibility);
 
 }
