@@ -44,6 +44,9 @@ public slots:
     void cookTorranceClicked();
     void goochClicked();
     void transparentClicked();
+    void noiseColorClicked();
+    void noiseIlluminationClicked();
+    void noiseNormalMapClicked();
     void opaqueClicked();
     void updateLightIntensity(int lightSliderValue);
     void updateShininess(int shininessSliderValue);
@@ -88,6 +91,9 @@ private:
     bool gooch;
     bool cookTorrance;
     bool transparent;
+    bool noiseNormalMap;
+    bool noiseColor;
+    bool noiseIllumination;
     float eta;
     float roughness;
     float lightIntensity;

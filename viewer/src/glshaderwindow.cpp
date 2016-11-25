@@ -25,6 +25,7 @@ glShaderWindow::glShaderWindow(QWindow *parent)
       g_vertices(0), g_normals(0), g_texcoords(0), g_colors(0), g_indices(0),
       environmentMap(0), texture(0), normalMap(0), permTexture(0), pixels(0), mouseButton(Qt::NoButton), auxWidget(0),
       blinnPhong(true), transparent(true), gooch(false), cookTorrance(false), eta(0), roughness(0.3), lightIntensity(1.5f),
+      noiseNormalMap(false), noiseColor(true), noiseIllumination(false),
       shininess(50.0f), lightDistance(5.0f), groundDistance(0.78), shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
       m_indexBuffer(QOpenGLBuffer::IndexBuffer), ground_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
@@ -191,6 +192,30 @@ void glShaderWindow::transparentClicked()
     renderNow();
 }
 
+void glShaderWindow::noiseColorClicked()
+{
+    noiseColor = true;
+    noiseIllumination = false;
+    noiseNormalMap = false;
+    renderNow();
+}
+
+void glShaderWindow::noiseIlluminationClicked()
+{
+    noiseColor = false;
+    noiseIllumination = true;
+    noiseNormalMap = false;
+    renderNow();
+}
+
+void glShaderWindow::noiseNormalMapClicked()
+{
+    noiseColor = false;
+    noiseIllumination = false;
+    noiseNormalMap = true;
+    renderNow();
+}
+
 void glShaderWindow::opaqueClicked()
 {
     transparent = false;
@@ -289,6 +314,39 @@ void glShaderWindow::showAuxWindow()
     vbox2->addWidget(transparent2);
     groupBox2->setLayout(vbox2);
     buttons->addWidget(groupBox2);
+    outer->addLayout(buttons);
+
+    QGroupBox *groupBox3 = new QGroupBox("Perlin Noise");
+    QRadioButton *model1 = new QRadioButton("&Color");
+    QRadioButton *model2 = new QRadioButton("&Illumination");
+    QRadioButton *model3 = new QRadioButton("&Normal Mapping");
+    if (noiseColor)
+    {
+        model1->setChecked(true);
+        model2->setChecked(false);
+        model3->setChecked(false);
+    }
+    else if (noiseIllumination)
+    {
+        model1->setChecked(false);
+        model2->setChecked(true);
+        model3->setChecked(false);
+    }
+    else
+    {
+        model1->setChecked(false);
+        model2->setChecked(false);
+        model3->setChecked(true);
+    }
+    connect(model1, SIGNAL(clicked()), this, SLOT(noiseColorClicked()));
+    connect(model2, SIGNAL(clicked()), this, SLOT(noiseIlluminationClicked()));
+    connect(model3, SIGNAL(clicked()), this, SLOT(noiseNormalMapClicked()));
+    QVBoxLayout *vbox3 = new QVBoxLayout;
+    vbox3->addWidget(model1);
+    vbox3->addWidget(model2);
+    vbox3->addWidget(model3);
+    groupBox3->setLayout(vbox3);
+    buttons->addWidget(groupBox3);
     outer->addLayout(buttons);
 
     // light source intensity

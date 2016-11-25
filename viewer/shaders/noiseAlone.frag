@@ -282,4 +282,6 @@ void main( void )
     // 2eme partie (materiau plus structuré)
     colorIndex = computeColor( 5, noiseValue * abs(vertPos.x)/10, 0.1);
     fragColor = computeIllumination(0.2,0.2,0.6,colors[colorIndex]);
+
+
 }
