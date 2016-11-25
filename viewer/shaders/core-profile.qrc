@@ -16,5 +16,15 @@
         <file>h_shadowMapGeneration.vert</file>
         <file>illumination.frag</file>
         <file>illumination.vert</file>
+        <file>normalMap.frag</file>
+        <file>normalMap.vert</file>
+        <file>ESM.frag</file>
+        <file>ESM.vert</file>
+        <file>PCF.frag</file>
+        <file>PCF.vert</file>
+        <file>PCSS.frag</file>
+        <file>PCSS.vert</file>
+        <file>VSM.vert</file>
+        <file>VSM.frag</file>
     </qresource>
 </RCC>
