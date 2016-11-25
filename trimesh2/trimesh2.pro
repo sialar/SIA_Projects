@@ -1,4 +1,4 @@
-DESTDIR = ../../SIA_Projects/trimesh2/lib
+DESTDIR = ../../SIA_Projects_2/trimesh2/lib
 
 win32 {
     TEMPLATE = vclib

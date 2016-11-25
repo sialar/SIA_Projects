@@ -26,7 +26,7 @@ glShaderWindow::glShaderWindow(QWindow *parent)
       environmentMap(0), texture(0), normalMap(0), permTexture(0), pixels(0), mouseButton(Qt::NoButton), auxWidget(0),
       blinnPhong(true), transparent(true), gooch(false), cookTorrance(false), eta(0), roughness(0.3), lightIntensity(1.5f),
       noiseNormalMap(false), noiseColor(true), noiseIllumination(false),
-      PCSS(false), VSM(false), ESM(false),
+      PCSS(false), VSM(false), ESM(false), lightSize(1), maxFilterSize(5),
       shininess(50.0f), lightDistance(5.0f), groundDistance(0.78), shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
       m_indexBuffer(QOpenGLBuffer::IndexBuffer), ground_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
@@ -160,8 +160,10 @@ void glShaderWindow::PCFClicked()
     PCSS = false;
     VSM = false;
     ESM = false;
-	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
-	m_program = prepareShaderProgram(":/PCF.vert", ":/PCF.frag");
+
+    ground_program = prepareShaderProgram(":/textured_PCF.vert", ":/textured_PCF.frag");
+
+    setShader("PCF");
     renderNow();
 }
 
@@ -170,8 +172,10 @@ void glShaderWindow::PCSSClicked()
     PCSS = true;
     VSM = false;
     ESM = false;
-	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
-	m_program = prepareShaderProgram(":/PCSS.vert", ":/PCSS.frag");
+
+    ground_program = prepareShaderProgram(":/textured_PCSS.vert", ":/textured_PCSS.frag");
+
+    setShader("PCSS");
     renderNow();
 }
 
@@ -180,8 +184,10 @@ void glShaderWindow::VSMClicked()
     PCSS = false;
     VSM = true;
     ESM = false;
-	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
-	m_program = prepareShaderProgram(":/VSM.vert", ":/VSM.frag");
+
+    ground_program = prepareShaderProgram(":/textured_VSM.vert", ":/textured_VSM.frag");
+
+    setShader("VSM");
     renderNow();
 }
 
@@ -190,8 +196,10 @@ void glShaderWindow::ESMClicked()
     PCSS = false;
     VSM = false;
     ESM = true;
-	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
-	m_program = prepareShaderProgram(":/ESM.vert", ":/ESM.frag");
+
+    ground_program = prepareShaderProgram(":/textured_ESM.vert", ":/textured_ESM.frag");
+
+    setShader("ESM");
     renderNow();
 }
 
@@ -284,6 +292,18 @@ void glShaderWindow::updateEta(int etaSliderValue)
 void glShaderWindow::updateRoughness(int roughnessSliderValue)
 {
     roughness = roughnessSliderValue/100.0;
+    renderNow();
+}
+
+void glShaderWindow::updateLightSize(int lightSizeSliderValue)
+{
+    lightSize = lightSizeSliderValue;
+    renderNow();
+}
+
+void glShaderWindow::updateMaxFilterSize(int maxFilterSizeSliderValue)
+{
+    maxFilterSize = maxFilterSizeSliderValue;
     renderNow();
 }
 
@@ -505,6 +525,42 @@ void glShaderWindow::showAuxWindow()
     hboxRoughness->addWidget(roughnessLabelValue);
     outer->addLayout(hboxRoughness);
     outer->addWidget(roughnessSlider);
+
+    // Light Size slider
+    QSlider* lightSizeSlider = new QSlider(Qt::Horizontal);
+    lightSizeSlider->setTickPosition(QSlider::TicksBelow);
+    lightSizeSlider->setTickInterval(1);
+    lightSizeSlider->setMinimum(1);
+    lightSizeSlider->setMaximum(50);
+    lightSizeSlider->setSliderPosition(lightSize);
+    connect(lightSizeSlider,SIGNAL(valueChanged(int)),this,SLOT(updateLightSize(int)));
+    QLabel* lightSizeLabel = new QLabel("Size of the light soure : ");
+    QLabel* lightSizeLabelValue = new QLabel();
+    lightSizeLabelValue->setNum(lightSize);
+    connect(lightSizeSlider,SIGNAL(valueChanged(int)),lightSizeLabelValue,SLOT(setNum(int)));
+    QHBoxLayout *hboxLightSize= new QHBoxLayout;
+    hboxLightSize->addWidget(lightSizeLabel);
+    hboxLightSize->addWidget(lightSizeLabelValue);
+    outer->addLayout(hboxLightSize);
+    outer->addWidget(lightSizeSlider);
+
+    // Maximum filter size for the shadow slider
+    QSlider* maxFilterSizeSlider = new QSlider(Qt::Horizontal);
+    maxFilterSizeSlider->setTickPosition(QSlider::TicksBelow);
+    maxFilterSizeSlider->setTickInterval(1);
+    maxFilterSizeSlider->setMinimum(1);
+    maxFilterSizeSlider->setMaximum(30);
+    maxFilterSizeSlider->setSliderPosition(maxFilterSize);
+    connect(maxFilterSizeSlider,SIGNAL(valueChanged(int)),this,SLOT(updateMaxFilterSize(int)));
+    QLabel* maxFilterSizeLabel = new QLabel("Maximum size of the filter used to compute the shadow : ");
+    QLabel* maxFilterSizeLabelValue = new QLabel();
+    maxFilterSizeLabelValue->setNum(maxFilterSize);
+    connect(maxFilterSizeSlider,SIGNAL(valueChanged(int)),maxFilterSizeLabelValue,SLOT(setNum(int)));
+    QHBoxLayout *hboxMaxFilterSize= new QHBoxLayout;
+    hboxMaxFilterSize->addWidget(maxFilterSizeLabel);
+    hboxMaxFilterSize->addWidget(maxFilterSizeLabelValue);
+    outer->addLayout(hboxMaxFilterSize);
+    outer->addWidget(maxFilterSizeSlider);
 
     auxWidget->setLayout(outer);
     auxWidget->show();
@@ -911,7 +967,7 @@ void glShaderWindow::initialize()
         ground_program->release();
         delete(ground_program);
     }
-    ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
+    ground_program = prepareShaderProgram(":/textured_PCF.vert", ":/textured_PCF.frag");
     if (shadowMapGenerationProgram) {
         shadowMapGenerationProgram->release();
         delete(shadowMapGenerationProgram);
@@ -969,8 +1025,7 @@ void glShaderWindow::resize(int x, int y)
     }
 }
 
-QOpenGLShaderProgram* glShaderWindow::prepareShaderProgram(const QString& vertexShaderPath,
-                                           const QString& fragmentShaderPath)
+QOpenGLShaderProgram* glShaderWindow::prepareShaderProgram(const QString& vertexShaderPath, const QString& fragmentShaderPath)
 {
     QOpenGLShaderProgram* program = new QOpenGLShaderProgram(this);
     if (!program) qWarning() << "Failed to allocate the shader";
@@ -987,8 +1042,6 @@ QOpenGLShaderProgram* glShaderWindow::prepareShaderProgram(const QString& vertex
 
     return program;
 }
-
-
 
 void glShaderWindow::setWorkingDirectory(QString& myPath, QString& myName, QString& texture, QString& envMap)
 {
@@ -1196,6 +1249,8 @@ void glShaderWindow::render()
     m_program->setUniformValue("eta", eta);
     m_program->setUniformValue("roughness", roughness);
     m_program->setUniformValue("radius", modelMesh->bsphere.r);
+    m_program->setUniformValue("lightSize", lightSize);
+    m_program->setUniformValue("maxFilterSize", maxFilterSize);
     // Shadow Mapping
     if (m_program->uniformLocation("shadowMap") != -1) {
         m_program->setUniformValue("shadowMap", shadowMap->texture());
@@ -1228,13 +1283,15 @@ void glShaderWindow::render()
         ground_program->setUniformValue("roughness", roughness);
         ground_program->setUniformValue("eta", eta);
         ground_program->setUniformValue("radius", modelMesh->bsphere.r);
+        ground_program->setUniformValue("lightSize", lightSize);
+        ground_program->setUniformValue("maxFilterSize", maxFilterSize);
         if (ground_program->uniformLocation("colorTexture") != -1) ground_program->setUniformValue("colorTexture", 0);
         if (ground_program->uniformLocation("shadowMap") != -1) {
             ground_program->setUniformValue("shadowMap", shadowMap->texture());
             // TODO_TP3: send the right transform here
             ground_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
-            m_program->setUniformValue("nearPlane", nearPlane);
-		    m_program->setUniformValue("farPlane", farPlane);
+            ground_program->setUniformValue("nearPlane", nearPlane);
+            ground_program->setUniformValue("farPlane", farPlane);
         }
         ground_vao.bind();
         glDrawElements(GL_TRIANGLES, g_numIndices, GL_UNSIGNED_INT, 0);

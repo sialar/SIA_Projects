@@ -26,5 +26,13 @@
         <file>PCSS.vert</file>
         <file>VSM.vert</file>
         <file>VSM.frag</file>
+        <file>textured_ESM.frag</file>
+        <file>textured_ESM.vert</file>
+        <file>textured_PCF.frag</file>
+        <file>textured_PCF.vert</file>
+        <file>textured_PCSS.frag</file>
+        <file>textured_PCSS.vert</file>
+        <file>textured_VSM.frag</file>
+        <file>textured_VSM.vert</file>
     </qresource>
 </RCC>
