@@ -26,6 +26,7 @@ glShaderWindow::glShaderWindow(QWindow *parent)
       environmentMap(0), texture(0), normalMap(0), permTexture(0), pixels(0), mouseButton(Qt::NoButton), auxWidget(0),
       blinnPhong(true), transparent(true), gooch(false), cookTorrance(false), eta(0), roughness(0.3), lightIntensity(1.5f),
       noiseNormalMap(false), noiseColor(true), noiseIllumination(false),
+      PCSS(false), VSM(false), ESM(false),
       shininess(50.0f), lightDistance(5.0f), groundDistance(0.78), shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
       m_indexBuffer(QOpenGLBuffer::IndexBuffer), ground_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
@@ -154,6 +155,46 @@ void glShaderWindow::openNewEnvMap() {
     }
 }
 
+void glShaderWindow::PCFClicked()
+{
+    PCSS = false;
+    VSM = false;
+    ESM = false;
+	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
+	m_program = prepareShaderProgram(":/PCF.vert", ":/PCF.frag");
+    renderNow();
+}
+
+void glShaderWindow::PCSSClicked()
+{
+    PCSS = true;
+    VSM = false;
+    ESM = false;
+	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
+	m_program = prepareShaderProgram(":/PCSS.vert", ":/PCSS.frag");
+    renderNow();
+}
+
+*void glShaderWindow::VSMClicked()
+{
+    PCSS = false;
+    VSM = true;
+    ESM = false;
+	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
+	m_program = prepareShaderProgram(":/VSM.vert", ":/VSM.frag");
+    renderNow();
+}
+
+void glShaderWindow::PCFClicked()
+{
+    PCSS = false;
+    VSM = false;
+    ESM = true;
+	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
+	m_program = prepareShaderProgram(":/ESM.vert", ":/ESM.frag");
+    renderNow();
+}
+
 void glShaderWindow::phongClicked()
 {
     blinnPhong = false;
@@ -255,6 +296,44 @@ void glShaderWindow::showAuxWindow()
 
     QVBoxLayout *outer = new QVBoxLayout;
     QHBoxLayout *buttons = new QHBoxLayout;
+    
+    QGroupBox *groupBox = new QGroupBox("Shadow type selection");
+    QRadioButton *radio1 = new QRadioButton("PCF");
+    QRadioButton *radio2 = new QRadioButton("PCSS");
+    QRadioButton *radio3 = new QRadioButton("VSM");
+    QRadioButton *radio4 = new QRadioButton("ESM");
+    if (PCSS)
+    {
+        radio1->setChecked(false);
+        radio2->setChecked(true);
+        radio3->setChecked(false);
+        radio4->setChecked(false);
+    }
+    else if (VSM)
+    {
+        radio1->setChecked(false);
+        radio2->setChecked(false);
+        radio3->setChecked(true);
+        radio4->setChecked(false);
+    }
+    else if (ESM)
+    {
+        radio1->setChecked(false);
+        radio2->setChecked(false);
+        radio3->setChecked(false);
+        radio4->setChecked(true);
+    }
+    else
+    {
+        radio1->setChecked(true);
+        radio2->setChecked(false);
+        radio3->setChecked(false);
+        radio4->setChecked(false);
+    }
+    connect(radio1, SIGNAL(clicked()), this, SLOT(PCFClicked()));
+    connect(radio2, SIGNAL(clicked()), this, SLOT(PCSSClicked()));
+    connect(radio3, SIGNAL(clicked()), this, SLOT(VSMClicked()));
+    connect(radio4, SIGNAL(clicked()), this, SLOT(ESMClicked()));
 
     QGroupBox *groupBox = new QGroupBox("Specular Model selection");
     QRadioButton *radio1 = new QRadioButton("Phong");
@@ -1050,16 +1129,18 @@ void glShaderWindow::render()
         float fovy = 2.0 * (180.0/M_PI) * atan2(radius, lightDistance);
 
 		//lemming
+		/*
 		float nearPlane = (lightDistance * radius - radius) * 0.7;
 		float farPlane = (lightDistance * radius + radius) * 1.5;
 		lightPerspective.perspective(fovy, 1.0, nearPlane, farPlane); 
+		*/
 		
 		//buddha
-		/*
+		
 		float nearPlane = 300;
 		float farPlane = 800;
 		lightPerspective.perspective(40, 1.0, nearPlane, farPlane); 
-		*/
+		
 
         shadowMapGenerationProgram->setUniformValue("matrix", lightCoordMatrix);
         shadowMapGenerationProgram->setUniformValue("perspective", lightPerspective);

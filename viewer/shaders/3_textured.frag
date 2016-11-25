@@ -62,7 +62,7 @@ void main( void )
 	float blockerNumber = 0.f;
 	float blockerDepth;
 
-	
+	//PCSS
 	if (lightSpace.w > 0 && lightSpaceScaled.x > 0 && lightSpaceScaled.y > 0 && lightSpaceScaled.z > 0 && lightSpaceScaled.x < 1 && lightSpaceScaled.y < 1 && lightSpaceScaled.z < 1){
 		for(float i = -SMSize/2.f; i <= SMSize/2.f; i = i + 1){
 			for(float j = -SMSize/2.f; j <= SMSize/2.f; j = j + 1){
@@ -77,7 +77,6 @@ void main( void )
 		
 		float filterSize = min(lightSize * (lightSpaceScaled.z - blockerDepthAvg)/blockerDepthAvg, filterMaxSize);
 			
-		// PCF
 		float potentialBlocker = 0.f;
 		blockerNumber = 0.f;
 		for(float i = -filterSize/2.f; i<=filterSize/2.f; i = i + 1){
