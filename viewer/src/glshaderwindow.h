@@ -48,6 +48,10 @@ public slots:
     void noiseIlluminationClicked();
     void noiseNormalMapClicked();
     void opaqueClicked();
+    void PCSSClicked();
+    void VSMClicked();
+    void PCFClicked();
+    void ESMClicked();
     void updateLightIntensity(int lightSliderValue);
     void updateShininess(int shininessSliderValue);
     void updateEta(int etaSliderValue);
@@ -94,6 +98,10 @@ private:
     bool noiseNormalMap;
     bool noiseColor;
     bool noiseIllumination;
+    bool PCSS;
+    bool VSM;
+    bool ESM;
+
     float eta;
     float roughness;
     float lightIntensity;

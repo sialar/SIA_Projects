@@ -41,6 +41,8 @@ OTHER_FILES +=  \
     shaders/5_envMap.vert \
     shaders/noiseAlone.frag \
     shaders/noiseAlone.vert \
+    shaders/illumination.frag \
+    shaders/illumination.vert \
     shaders/h_shadowMapGeneration.frag \
     shaders/h_shadowMapGeneration.vert
 
