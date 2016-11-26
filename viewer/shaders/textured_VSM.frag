@@ -52,8 +52,6 @@ void main( void )
 
     vec3 N = normalize(vertNormal);
     vec3 L = normalize(lightVector);
-    float bias = 0.005*tan(acos(dot(N, L)));
-    bias = clamp(bias, 0, 0.01);
 
     float texelSize = 1.0 / textureSize(shadowMap, 0).x;
 

@@ -9,6 +9,7 @@ uniform float eta;
 uniform float nearPlane;
 uniform float farPlane;
 uniform int maxFilterSize;
+uniform int biasCoeff;
 
 
 in vec3 eyeVector;
@@ -52,28 +53,28 @@ void main( void )
 
     vec3 N = normalize(vertNormal);
     vec3 L = normalize(lightVector);
-    float bias = 0.005*tan(acos(dot(N, L)));
-    bias = clamp(bias, 0, 0.01);
 
     float texelSize = 1.0 / textureSize(shadowMap, 0).x;
+
+    float texelSizeProjected = texelSize * (nearPlane + lightSpaceScaled.z * (farPlane - nearPlane)) / nearPlane;
+    float bias = biasCoeff * texelSizeProjected * tan(acos(dot(N, L)));
 
     float depth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.0 - lightSpaceScaled.y)).z;
 
     if (lightSpace.w > 0 && lightSpaceScaled.x > 0 && lightSpaceScaled.y > 0 && lightSpaceScaled.z > 0 && lightSpaceScaled.x < 1 && lightSpaceScaled.y < 1 && lightSpaceScaled.z < 1){
 
-            // PCF
-            float potentialBlocker = 0.f;
-            float blockerNumber = 0.f;
-            for(float i = -maxFilterSize/2.f; i<=maxFilterSize/2.f; i = i + 1){
-                    for(float j = -maxFilterSize/2.f; j<=maxFilterSize/2.f; j = j + 1){
-                            depth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.f - lightSpaceScaled.y) + texelSize * vec2(i, j)).z;
-                            potentialBlocker++;
-                            if(depth < lightSpaceScaled.z - bias){
-                                    blockerNumber++;
-                            }
-                    }
-            }
-            visibility -= blockerNumber/potentialBlocker;
+        float potentialBlocker = 0.f;
+        float blockerNumber = 0.f;
+        for(float i = -maxFilterSize/2.f; i<=maxFilterSize/2.f; i = i + 1){
+                for(float j = -maxFilterSize/2.f; j<=maxFilterSize/2.f; j = j + 1){
+                        depth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.f - lightSpaceScaled.y) + texelSize * vec2(i, j)).z;
+                        potentialBlocker++;
+                        if(depth < lightSpaceScaled.z - bias){
+                                blockerNumber++;
+                        }
+                }
+        }
+        visibility -= blockerNumber/potentialBlocker;
     }
 
     vec4 texColor = texture2D(colorTexture, textCoords);

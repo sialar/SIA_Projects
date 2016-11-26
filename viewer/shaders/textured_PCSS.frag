@@ -10,6 +10,7 @@ uniform float farPlane;
 uniform sampler2D colorTexture;
 uniform int maxFilterSize;
 uniform int lightSize;
+uniform int biasCoeff;
 
 
 in vec3 eyeVector;
@@ -53,11 +54,12 @@ void main( void )
 
     vec3 N = normalize(vertNormal);
     vec3 L = normalize(lightVector);
-    float bias = 0.005*tan(acos(dot(N, L)));
-    bias = clamp(bias, 0, 0.01);
 
     float texelSize = 1.0 / textureSize(shadowMap, 0).x;
     float SMSize = min(lightSize * lightSpaceScaled.z * (farPlane - nearPlane) / (lightSpaceScaled.z * (farPlane - nearPlane) + nearPlane), maxFilterSize);
+
+    float texelSizeProjected = texelSize * (nearPlane + lightSpaceScaled.z * (farPlane - nearPlane)) / nearPlane;
+    float bias = biasCoeff * texelSizeProjected * tan(acos(dot(N, L)));
 
     float depth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.0 - lightSpaceScaled.y)).z;
     float blockerDepthAvg = 0.f;
@@ -79,7 +81,6 @@ void main( void )
 
             float filterSize = min(lightSize * (lightSpaceScaled.z - blockerDepthAvg)/blockerDepthAvg, maxFilterSize);
 
-            // PCF
             float potentialBlocker = 0.f;
             blockerNumber = 0.f;
             for(float i = -filterSize/2.f; i<=filterSize/2.f; i = i + 1){

@@ -26,7 +26,7 @@ glShaderWindow::glShaderWindow(QWindow *parent)
       environmentMap(0), texture(0), normalMap(0), permTexture(0), pixels(0), mouseButton(Qt::NoButton), auxWidget(0),
       blinnPhong(true), transparent(true), gooch(false), cookTorrance(false), eta(0), roughness(0.3), lightIntensity(1.5f),
       noiseNormalMap(false), noiseColor(true), noiseIllumination(false),
-      PCSS(false), VSM(false), ESM(false), lightSize(1), maxFilterSize(5),
+      PCSS(false), VSM(false), ESM(false), lightSize(1), maxFilterSize(5), biasCoeff(10),
       shininess(50.0f), lightDistance(5.0f), groundDistance(0.78), shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
       m_indexBuffer(QOpenGLBuffer::IndexBuffer), ground_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
@@ -307,6 +307,12 @@ void glShaderWindow::updateMaxFilterSize(int maxFilterSizeSliderValue)
     renderNow();
 }
 
+void glShaderWindow::updateBiasCoeff(int biasCoeffSliderValue)
+{
+    biasCoeff = biasCoeffSliderValue;
+    renderNow();
+}
+
 void glShaderWindow::showAuxWindow()
 {
     if (auxWidget)
@@ -561,6 +567,24 @@ void glShaderWindow::showAuxWindow()
     hboxMaxFilterSize->addWidget(maxFilterSizeLabelValue);
     outer->addLayout(hboxMaxFilterSize);
     outer->addWidget(maxFilterSizeSlider);
+
+    // bias coefficient slider (for shadow acne)
+    QSlider* biasCoeffSlider = new QSlider(Qt::Horizontal);
+    biasCoeffSlider->setTickPosition(QSlider::TicksBelow);
+    biasCoeffSlider->setTickInterval(1);
+    biasCoeffSlider->setMinimum(1);
+    biasCoeffSlider->setMaximum(30);
+    biasCoeffSlider->setSliderPosition(biasCoeff);
+    connect(biasCoeffSlider,SIGNAL(valueChanged(int)),this,SLOT(updateBiasCoeff(int)));
+    QLabel* biasCoeffLabel = new QLabel("bias coefficient to avoid shadow acne : ");
+    QLabel* biasCoeffLabelValue = new QLabel();
+    biasCoeffLabelValue->setNum(biasCoeff);
+    connect(biasCoeffSlider,SIGNAL(valueChanged(int)),biasCoeffLabelValue,SLOT(setNum(int)));
+    QHBoxLayout *hboxBiasCoeff= new QHBoxLayout;
+    hboxBiasCoeff->addWidget(biasCoeffLabel);
+    hboxBiasCoeff->addWidget(biasCoeffLabelValue);
+    outer->addLayout(hboxBiasCoeff);
+    outer->addWidget(biasCoeffSlider);
 
     auxWidget->setLayout(outer);
     auxWidget->show();
@@ -962,7 +986,7 @@ void glShaderWindow::initialize()
         m_program->release();
         delete(m_program);
     }
-    m_program = prepareShaderProgram(":/2_phong.vert", ":/2_phong.frag");
+    m_program = prepareShaderProgram(":/PCF.vert", ":/PCF.frag");
     if (ground_program) {
         ground_program->release();
         delete(ground_program);
@@ -1251,6 +1275,7 @@ void glShaderWindow::render()
     m_program->setUniformValue("radius", modelMesh->bsphere.r);
     m_program->setUniformValue("lightSize", lightSize);
     m_program->setUniformValue("maxFilterSize", maxFilterSize);
+    m_program->setUniformValue("biasCoeff", biasCoeff);
     // Shadow Mapping
     if (m_program->uniformLocation("shadowMap") != -1) {
         m_program->setUniformValue("shadowMap", shadowMap->texture());
@@ -1285,6 +1310,7 @@ void glShaderWindow::render()
         ground_program->setUniformValue("radius", modelMesh->bsphere.r);
         ground_program->setUniformValue("lightSize", lightSize);
         ground_program->setUniformValue("maxFilterSize", maxFilterSize);
+        ground_program->setUniformValue("biasCoeff", biasCoeff);
         if (ground_program->uniformLocation("colorTexture") != -1) ground_program->setUniformValue("colorTexture", 0);
         if (ground_program->uniformLocation("shadowMap") != -1) {
             ground_program->setUniformValue("shadowMap", shadowMap->texture());

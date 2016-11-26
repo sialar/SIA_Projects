@@ -93,22 +93,19 @@ void main( void )
     
     float F0 = pow(1-eta,2) / pow(1+eta,2);
     float F = F0 + (1-F0) * pow( (1- VdotH), 5 );
-    
-	float bias = 0.005*tan(acos(dot(N, L)));
-	bias = clamp(bias, 0, 0.01);
 	
-	float c = 1.f;
-	
-	float texelSize = 1.0 / textureSize(shadowMap, 0).x;
-	
-	float depth1;
-	float depth2;
-	
-	if (lightSpace.w > 0 && lightSpaceScaled.x > 0 && lightSpaceScaled.y > 0 && lightSpaceScaled.z > 0 && lightSpaceScaled.x < 1 && lightSpaceScaled.y < 1 && lightSpaceScaled.z < 1){
-		float z = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.f - lightSpaceScaled.y)).z;
-		float d = lightSpaceScaled.z;
-		visibility = min(1.f, exp(c * (z - d)));
-	}
+    float c = 1.f;
+
+    float texelSize = 1.0 / textureSize(shadowMap, 0).x;
+
+    float depth1;
+    float depth2;
+
+    if (lightSpace.w > 0 && lightSpaceScaled.x > 0 && lightSpaceScaled.y > 0 && lightSpaceScaled.z > 0 && lightSpaceScaled.x < 1 && lightSpaceScaled.y < 1 && lightSpaceScaled.z < 1){
+            float z = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.f - lightSpaceScaled.y)).z;
+            float d = lightSpaceScaled.z;
+            visibility = min(1.f, exp(c * (z - d)));
+    }
 	
     if (blinnPhong)
         fragColor = computeBlinnPhongIllumination(0.3, 0.3, 0.4, NdotL, NdotH, F, visibility);

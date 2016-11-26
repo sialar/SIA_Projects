@@ -12,6 +12,7 @@ uniform bool cookTorrance;
 uniform bool gooch;
 uniform int lightSize;
 uniform int maxFilterSize;
+uniform int biasCoeff;
 
 in vec3 eyeVector;
 in vec3 lightVector;
@@ -94,48 +95,46 @@ void main( void )
     
     float F0 = pow(1-eta,2) / pow(1+eta,2);
     float F = F0 + (1-F0) * pow( (1- VdotH), 5 );
-    
-	float bias = 0.005*tan(acos(dot(N, L)));
-	bias = clamp(bias, 0, 0.01);
 	
-	float texelSize = 1.0 / textureSize(shadowMap, 0).x;
-	float filterMaxSize = 20.f;
-        float SMSize = min(lightSize * lightSpaceScaled.z * (farPlane - nearPlane) / (lightSpaceScaled.z * (farPlane - nearPlane) + nearPlane), maxFilterSize);
-	
-	float depth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.0 - lightSpaceScaled.y)).z;
-	float blockerDepthAvg = 0.f;
-	float blockerNumber = 0.f;
-	float blockerDepth;
+    float texelSize = 1.0 / textureSize(shadowMap, 0).x;
+    float SMSize = min(lightSize * lightSpaceScaled.z * (farPlane - nearPlane) / (lightSpaceScaled.z * (farPlane - nearPlane) + nearPlane), maxFilterSize);
 
-	
-	if (lightSpace.w > 0 && lightSpaceScaled.x > 0 && lightSpaceScaled.y > 0 && lightSpaceScaled.z > 0 && lightSpaceScaled.x < 1 && lightSpaceScaled.y < 1 && lightSpaceScaled.z < 1){
-		for(float i = -SMSize/2.f; i <= SMSize/2.f; i = i + 1){
-			for(float j = -SMSize/2.f; j <= SMSize/2.f; j = j + 1){
-				blockerDepth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.0 - lightSpaceScaled.y) + texelSize * vec2(i, j)).z;
-				if(blockerDepth < depth){
-					blockerNumber = blockerNumber + 1;
-					blockerDepthAvg += blockerDepth;
-				}
-			}
-		}
-		blockerDepthAvg /= blockerNumber;
-		
-                float filterSize = min(lightSize * (lightSpaceScaled.z - blockerDepthAvg)/blockerDepthAvg, maxFilterSize);
-			
-		// PCF
-		float potentialBlocker = 0.f;
-		blockerNumber = 0.f;
-		for(float i = -filterSize/2.f; i<=filterSize/2.f; i = i + 1){
-			for(float j = -filterSize/2.f; j<=filterSize/2.f; j = j + 1){
-				depth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.f - lightSpaceScaled.y) + texelSize * vec2(i, j)).z;
-				potentialBlocker++;
-				if(depth < lightSpaceScaled.z - bias){
-					blockerNumber++;
-				}
-			}
-		}
-		visibility -= blockerNumber/potentialBlocker;
-	}
+    float texelSizeProjected = texelSize * (nearPlane + lightSpaceScaled.z * (farPlane - nearPlane)) / nearPlane;
+    float bias = biasCoeff * texelSizeProjected * tan(acos(dot(N, L)));
+
+    float depth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.0 - lightSpaceScaled.y)).z;
+    float blockerDepthAvg = 0.f;
+    float blockerNumber = 0.f;
+    float blockerDepth;
+
+
+    if (lightSpace.w > 0 && lightSpaceScaled.x > 0 && lightSpaceScaled.y > 0 && lightSpaceScaled.z > 0 && lightSpaceScaled.x < 1 && lightSpaceScaled.y < 1 && lightSpaceScaled.z < 1){
+            for(float i = -SMSize/2.f; i <= SMSize/2.f; i = i + 1){
+                    for(float j = -SMSize/2.f; j <= SMSize/2.f; j = j + 1){
+                            blockerDepth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.0 - lightSpaceScaled.y) + texelSize * vec2(i, j)).z;
+                            if(blockerDepth < depth){
+                                    blockerNumber = blockerNumber + 1;
+                                    blockerDepthAvg += blockerDepth;
+                            }
+                    }
+            }
+            blockerDepthAvg /= blockerNumber;
+
+            float filterSize = min(lightSize * (lightSpaceScaled.z - blockerDepthAvg)/blockerDepthAvg, maxFilterSize);
+
+            float potentialBlocker = 0.f;
+            blockerNumber = 0.f;
+            for(float i = -filterSize/2.f; i<=filterSize/2.f; i = i + 1){
+                    for(float j = -filterSize/2.f; j<=filterSize/2.f; j = j + 1){
+                            depth = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.f - lightSpaceScaled.y) + texelSize * vec2(i, j)).z;
+                            potentialBlocker++;
+                            if(depth < lightSpaceScaled.z - bias){
+                                    blockerNumber++;
+                            }
+                    }
+            }
+            visibility -= blockerNumber/potentialBlocker;
+    }
 	
     if (blinnPhong)
         fragColor = computeBlinnPhongIllumination(0.3, 0.3, 0.4, NdotL, NdotH, F, visibility);

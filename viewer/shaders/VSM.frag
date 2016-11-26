@@ -93,9 +93,6 @@ void main( void )
     
     float F0 = pow(1-eta,2) / pow(1+eta,2);
     float F = F0 + (1-F0) * pow( (1- VdotH), 5 );
-    
-    float bias = 0.005*tan(acos(dot(N, L)));
-    bias = clamp(bias, 0, 0.01);
 
     float texelSize = 1.0 / textureSize(shadowMap, 0).x;
 

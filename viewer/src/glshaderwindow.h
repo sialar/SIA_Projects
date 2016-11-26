@@ -58,6 +58,7 @@ public slots:
     void updateRoughness(int roughnessSliderValue);
     void updateLightSize(int lightSizeSliderValue);
     void updateMaxFilterSize(int maxFilterSizeSliderValue);
+    void updateBiasCoeff(int biasCoeffSliderValue);
 
 protected:
     void mousePressEvent(QMouseEvent *e);
@@ -112,6 +113,7 @@ private:
     float groundDistance;
     int lightSize;
     int maxFilterSize;
+    int biasCoeff;
 
     // OpenGL variables encapsulated by Qt
     QOpenGLShaderProgram *m_program;
