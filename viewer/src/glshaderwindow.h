@@ -50,6 +50,8 @@ public slots:
     void noiseJadeClicked();
     void noiseWoodClicked();
     void noiseNormalClicked();
+    void withNoiseClicked();
+    void fromTextureClicked();
     void cartesianCooClicked();
     void sphericalCooClicked();
     void opaqueClicked();
@@ -114,6 +116,7 @@ private:
     bool sphericalCoo;
     bool cartesianCoo;
     bool noiseNormal;
+    bool withNoise;
     bool PCSS;
     bool VSM;
     bool ESM;

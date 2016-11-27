@@ -25,7 +25,7 @@ glShaderWindow::glShaderWindow(QWindow *parent)
       g_vertices(0), g_normals(0), g_texcoords(0), g_colors(0), g_indices(0),
       environmentMap(0), texture(0), normalMap(0), permTexture(0), pixels(0), mouseButton(Qt::NoButton), auxWidget(0),
       blinnPhong(true), transparent(true), gooch(false), toon(false), cookTorrance(false), eta(0), noiseRate(0.5), noisePersistence(0.4),
-      roughness(0.3), lightIntensity(1.5f), noiseMarble(false), noiseJade(true), noiseWood(false), cartesianCoo(false),
+      roughness(0.3), lightIntensity(1.5f), noiseMarble(false), noiseJade(true), noiseWood(false), cartesianCoo(false), withNoise(true),
       sphericalCoo(false), noiseNormal(false), PCSS(true), VSM(false), ESM(false), lightSize(1), maxFilterSize(5), biasCoeff(10),
       shininess(50.0f), lightDistance(5.0f), groundDistance(0.78), shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
       m_indexBuffer(QOpenGLBuffer::IndexBuffer), ground_indexBuffer(QOpenGLBuffer::IndexBuffer)
@@ -332,6 +332,18 @@ void glShaderWindow::sphericalCooClicked()
     renderNow();
 }
 
+void glShaderWindow::withNoiseClicked()
+{
+    withNoise = true;
+    renderNow();
+}
+
+void glShaderWindow::fromTextureClicked()
+{
+    withNoise = false;
+    renderNow();
+}
+
 void glShaderWindow::opaqueClicked()
 {
     transparent = false;
@@ -560,6 +572,20 @@ void glShaderWindow::showAuxWindow()
     buttons->addWidget(groupBox2);
     outer->addLayout(buttons);
 
+    // Displacement Mapping box
+    QGroupBox *groupBox4 = new QGroupBox("Displacement Mapping");
+    QRadioButton *displacement1 = new QRadioButton("&With noise");
+    QRadioButton *displacement2 = new QRadioButton("&From texture");
+    if (withNoise) displacement1->setChecked(true);
+    else displacement2->setChecked(true);
+    connect(displacement1, SIGNAL(clicked()), this, SLOT(withNoiseClicked()));
+    connect(displacement2, SIGNAL(clicked()), this, SLOT(fromTextureClicked()));
+    QVBoxLayout *vbox4 = new QVBoxLayout;
+    vbox4->addWidget(displacement1);
+    vbox4->addWidget(displacement2);
+    groupBox4->setLayout(vbox4);
+    buttons->addWidget(groupBox4);
+    outer->addLayout(buttons);
 
     // Perlin noise box
     QGroupBox *groupBox3 = new QGroupBox("Perlin Noise");
@@ -1428,7 +1454,7 @@ void glShaderWindow::render()
         QOpenGLTexture* sm = new QOpenGLTexture(QImage(debugPix));
         sm->bind(shadowMap->texture());
         sm->setWrapMode(QOpenGLTexture::ClampToEdge);
-        debugPix.save("debug.png");
+        //debugPix.save("debug.png");
 #endif
         glClearColor( 0.2f, 0.2f, 0.2f, 1.0f );
         glEnable(GL_CULL_FACE);
@@ -1457,6 +1483,7 @@ void glShaderWindow::render()
     m_program->setUniformValue("noiseJade", noiseJade);
     m_program->setUniformValue("noiseWood", noiseWood);
     m_program->setUniformValue("transparent", transparent);
+    m_program->setUniformValue("withNoise", withNoise);
     m_program->setUniformValue("lightIntensity", lightIntensity);
     m_program->setUniformValue("shininess", shininess);
     m_program->setUniformValue("eta", eta);
