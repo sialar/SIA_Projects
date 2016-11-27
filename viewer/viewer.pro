@@ -1,4 +1,4 @@
-DESTDIR = ../../SIA_Projects/viewer
+DESTDIR = ../../SIA_Projects_2/viewer
 QT       += core gui opengl
 
 TARGET = myViewer
@@ -50,4 +50,14 @@ OTHER_FILES +=  \
 # Reference/source: http://gfx.cs.princeton.edu/proj/trimesh2/
 INCLUDEPATH += ../trimesh2/include/
 
-LIBS += -L../../SIA_Projects/trimesh2/lib -ltrimesh
+LIBS += -L../../SIA_Projects_2/trimesh2/lib -ltrimesh
+
+DISTFILES += \
+    shaders/textured_ESM.frag \
+    shaders/textured_PCF.frag \
+    shaders/textured_PCSS.frag \
+    shaders/textured_VSM.frag \
+    shaders/textured_ESM.vert \
+    shaders/textured_PCF.vert \
+    shaders/textured_PCSS.vert \
+    shaders/textured_VSM.vert
