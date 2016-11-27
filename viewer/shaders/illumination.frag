@@ -7,6 +7,7 @@ uniform float eta;
 uniform bool blinnPhong;
 uniform bool cookTorrance;
 uniform bool gooch;
+uniform bool toon;
 
 in vec3 eyeVector;
 in vec3 lightVector;
@@ -69,6 +70,18 @@ vec4 computeGoochIllumination(float NdotL, float u_alpha, float u_beta, float vi
     return visibility * vec4(mix(coolColorMod, warmColorMod, interpolationValue),1);
 }
 
+vec4 computeToonIllumination(float NdotL, float visibility)
+{
+    if (NdotL > 0.95)
+        return visibility * lightIntensity * vec4(1.0,0.5,0.5,1.0);
+    else if (NdotL > 0.5)
+        return visibility * lightIntensity * vec4(0.6,0.3,0.3,1.0);
+    else if (NdotL > 0.25)
+        return visibility * lightIntensity * vec4(0.4,0.2,0.2,1.0);
+    else
+        return visibility * lightIntensity * vec4(0.2,0.1,0.1,1.0);
+}
+
 void main( void )
 {
     vec3 N = normalize(vertNormal);
@@ -94,6 +107,8 @@ void main( void )
         fragColor = computeCookTorranceIllumination(NdotH, NdotV, VdotH, NdotL, F, 0.4, visibility);
     else if (gooch)
         fragColor = computeGoochIllumination(NdotL, 0.25, 0.5, visibility);
+    else if (toon)
+        fragColor = computeToonIllumination(NdotL, visibility);
     else
         fragColor = computePhongIllumination(0.3, 0.3, 0.4, NdotL, RdotV, F, visibility);
 

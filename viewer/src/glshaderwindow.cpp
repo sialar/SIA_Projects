@@ -24,9 +24,9 @@ glShaderWindow::glShaderWindow(QWindow *parent)
       m_program(0), ground_program(0), shadowMapGenerationProgram(0),
       g_vertices(0), g_normals(0), g_texcoords(0), g_colors(0), g_indices(0),
       environmentMap(0), texture(0), normalMap(0), permTexture(0), pixels(0), mouseButton(Qt::NoButton), auxWidget(0),
-      blinnPhong(true), transparent(true), gooch(false), cookTorrance(false), eta(0), roughness(0.3), lightIntensity(1.5f),
-      noiseNormalMap(false), noiseColor(true), noiseIllumination(false),
-      PCSS(false), VSM(false), ESM(false),
+      blinnPhong(true), transparent(true), gooch(false), toon(false), cookTorrance(false), eta(0), noiseRate(0.5), noisePersistence(0.4),
+      roughness(0.3), lightIntensity(1.5f), noiseMarble(false), noiseJade(true), noiseWood(false), cartesianCoo(false),
+      sphericalCoo(false), noiseNormal(false), PCSS(true), VSM(false), ESM(false),
       shininess(50.0f), lightDistance(5.0f), groundDistance(0.78), shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
       m_indexBuffer(QOpenGLBuffer::IndexBuffer), ground_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
@@ -126,6 +126,34 @@ void glShaderWindow::openNewTexture() {
     }
 }
 
+void glShaderWindow::openNewNormalMap() {
+    QFileDialog dialog(0, "Open normal map image", workingDirectory + "../textures/", "*.png *.PNG *.jpg *.JPG");
+    dialog.setAcceptMode(QFileDialog::AcceptOpen);
+    QString filename;
+    int ret = dialog.exec();
+    if (ret == QDialog::Accepted) {
+        normalMapName= dialog.selectedFiles()[0];
+        m_program->bind();
+        if ((!normalMapName.isNull()) && (m_program->uniformLocation("normalMap") != -1)|| (ground_program->uniformLocation("normalMap") != -1)) {
+            glActiveTexture(GL_TEXTURE1);
+            if (normalMap) {
+                normalMap->release();
+                normalMap->destroy();
+                delete normalMap;
+                normalMap = 0;
+            }
+            normalMap = new QOpenGLTexture(QImage(normalMapName).mirrored());
+            if (normalMap) {
+                normalMap->setWrapMode(QOpenGLTexture::MirroredRepeat);
+                normalMap->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+                normalMap->setMagnificationFilter(QOpenGLTexture::Nearest);
+                normalMap->bind(1);
+                if (m_program->uniformLocation("normalMap") != -1) m_program->setUniformValue("normalMap", 1);
+                if (ground_program->uniformLocation("normalMap") != -1) ground_program->setUniformValue("normalMap", 1);            }
+        }
+        renderNow();
+    }
+}
 void glShaderWindow::openNewEnvMap() {
     QFileDialog dialog(0, "Open environment map image", workingDirectory + "../textures/", "*.png *.PNG *.jpg *.JPG");
     dialog.setAcceptMode(QFileDialog::AcceptOpen);
@@ -160,8 +188,8 @@ void glShaderWindow::PCFClicked()
     PCSS = false;
     VSM = false;
     ESM = false;
-	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
-	m_program = prepareShaderProgram(":/PCF.vert", ":/PCF.frag");
+    ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
+    m_program = prepareShaderProgram(":/PCF.vert", ":/PCF.frag");
     renderNow();
 }
 
@@ -170,8 +198,8 @@ void glShaderWindow::PCSSClicked()
     PCSS = true;
     VSM = false;
     ESM = false;
-	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
-	m_program = prepareShaderProgram(":/PCSS.vert", ":/PCSS.frag");
+    ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
+    m_program = prepareShaderProgram(":/PCSS.vert", ":/PCSS.frag");
     renderNow();
 }
 
@@ -180,8 +208,8 @@ void glShaderWindow::VSMClicked()
     PCSS = false;
     VSM = true;
     ESM = false;
-	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
-	m_program = prepareShaderProgram(":/VSM.vert", ":/VSM.frag");
+    ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
+    m_program = prepareShaderProgram(":/VSM.vert", ":/VSM.frag");
     renderNow();
 }
 
@@ -190,8 +218,8 @@ void glShaderWindow::ESMClicked()
     PCSS = false;
     VSM = false;
     ESM = true;
-	ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
-	m_program = prepareShaderProgram(":/ESM.vert", ":/ESM.frag");
+    ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
+    m_program = prepareShaderProgram(":/ESM.vert", ":/ESM.frag");
     renderNow();
 }
 
@@ -208,6 +236,7 @@ void glShaderWindow::blinnPhongClicked()
     blinnPhong = true;
     cookTorrance = false;
     gooch = false;
+    toon = false;
     renderNow();
 }
 
@@ -216,6 +245,7 @@ void glShaderWindow::cookTorranceClicked()
     blinnPhong = false;
     cookTorrance = true;
     gooch = false;
+    toon = false;
     renderNow();
 }
 
@@ -224,6 +254,16 @@ void glShaderWindow::goochClicked()
     blinnPhong = false;
     cookTorrance = false;
     gooch = true;
+    toon = false;
+    renderNow();
+}
+
+void glShaderWindow::toonClicked()
+{
+    blinnPhong = false;
+    cookTorrance = false;
+    gooch = false;
+    toon = true;
     renderNow();
 }
 
@@ -233,27 +273,51 @@ void glShaderWindow::transparentClicked()
     renderNow();
 }
 
-void glShaderWindow::noiseColorClicked()
+void glShaderWindow::noiseMarbleClicked()
 {
-    noiseColor = true;
-    noiseIllumination = false;
-    noiseNormalMap = false;
+    noiseMarble = true;
+    noiseJade = false;
+    noiseWood = false;
     renderNow();
 }
 
-void glShaderWindow::noiseIlluminationClicked()
+void glShaderWindow::noiseJadeClicked()
 {
-    noiseColor = false;
-    noiseIllumination = true;
-    noiseNormalMap = false;
+    noiseMarble = false;
+    noiseJade = true;
+    noiseWood = false;
     renderNow();
 }
 
-void glShaderWindow::noiseNormalMapClicked()
+void glShaderWindow::noiseWoodClicked()
 {
-    noiseColor = false;
-    noiseIllumination = false;
-    noiseNormalMap = true;
+    noiseMarble = false;
+    noiseJade = false;
+    noiseWood = true;
+    renderNow();
+}
+
+void glShaderWindow::noiseNormalClicked()
+{
+    cartesianCoo = false;
+    sphericalCoo = false;
+    noiseNormal = true;
+    renderNow();
+}
+
+void glShaderWindow::cartesianCooClicked()
+{
+    cartesianCoo = true;
+    sphericalCoo = false;
+    noiseNormal = false;
+    renderNow();
+}
+
+void glShaderWindow::sphericalCooClicked()
+{
+    cartesianCoo = false;
+    sphericalCoo = true;
+    noiseNormal = false;
     renderNow();
 }
 
@@ -287,6 +351,18 @@ void glShaderWindow::updateRoughness(int roughnessSliderValue)
     renderNow();
 }
 
+void glShaderWindow::updateNoiseRate(int noiseRateSliderValue)
+{
+    noiseRate = noiseRateSliderValue/100.0;
+    renderNow();
+}
+
+void glShaderWindow::updateNoisePersistence(int noisePersistenceSliderValue)
+{
+    noisePersistence = noisePersistenceSliderValue/100.0;
+    renderNow();
+}
+
 void glShaderWindow::showAuxWindow()
 {
     if (auxWidget)
@@ -297,63 +373,20 @@ void glShaderWindow::showAuxWindow()
     QVBoxLayout *outer = new QVBoxLayout;
     QHBoxLayout *buttons = new QHBoxLayout;
 
-    QGroupBox *groupBox0 = new QGroupBox("Shadow type selection");
-    QRadioButton *radio01 = new QRadioButton("PCF");
-    QRadioButton *radio02 = new QRadioButton("PCSS");
-    QRadioButton *radio03 = new QRadioButton("VSM");
-    QRadioButton *radio04 = new QRadioButton("ESM");
-    if (PCSS)
-    {
-        radio01->setChecked(false);
-        radio02->setChecked(true);
-        radio03->setChecked(false);
-        radio04->setChecked(false);
-    }
-    else if (VSM)
-    {
-        radio01->setChecked(false);
-        radio02->setChecked(false);
-        radio03->setChecked(true);
-        radio04->setChecked(false);
-    }
-    else if (ESM)
-    {
-        radio01->setChecked(false);
-        radio02->setChecked(false);
-        radio03->setChecked(false);
-        radio04->setChecked(true);
-    }
-    else
-    {
-        radio01->setChecked(true);
-        radio02->setChecked(false);
-        radio03->setChecked(false);
-        radio04->setChecked(false);
-    }
-    connect(radio01, SIGNAL(clicked()), this, SLOT(PCFClicked()));
-    connect(radio02, SIGNAL(clicked()), this, SLOT(PCSSClicked()));
-    connect(radio03, SIGNAL(clicked()), this, SLOT(VSMClicked()));
-    connect(radio04, SIGNAL(clicked()), this, SLOT(ESMClicked()));
-
-    QVBoxLayout *vbox0 = new QVBoxLayout;
-    vbox0->addWidget(radio01);
-    vbox0->addWidget(radio02);
-    vbox0->addWidget(radio03);
-    vbox0->addWidget(radio04);
-    groupBox0->setLayout(vbox0);
-    buttons->addWidget(groupBox0);
-
+    // Specular Model selection box
     QGroupBox *groupBox = new QGroupBox("Specular Model selection");
     QRadioButton *radio1 = new QRadioButton("Phong");
     QRadioButton *radio2 = new QRadioButton("Blinn-Phong");
     QRadioButton *radio3 = new QRadioButton("Cook-Torrance");
     QRadioButton *radio4 = new QRadioButton("Gooch");
+    QRadioButton *radio5 = new QRadioButton("X-Toon");
     if (blinnPhong)
     {
         radio1->setChecked(false);
         radio2->setChecked(true);
         radio3->setChecked(false);
         radio4->setChecked(false);
+        radio5->setChecked(false);
     }
     else if (cookTorrance)
     {
@@ -361,6 +394,7 @@ void glShaderWindow::showAuxWindow()
         radio2->setChecked(false);
         radio3->setChecked(true);
         radio4->setChecked(false);
+        radio5->setChecked(false);
     }
     else if (gooch)
     {
@@ -368,6 +402,15 @@ void glShaderWindow::showAuxWindow()
         radio2->setChecked(false);
         radio3->setChecked(false);
         radio4->setChecked(true);
+        radio5->setChecked(false);
+    }
+    else if (toon)
+    {
+        radio1->setChecked(false);
+        radio2->setChecked(false);
+        radio3->setChecked(false);
+        radio4->setChecked(false);
+        radio5->setChecked(true);
     }
     else
     {
@@ -375,45 +418,132 @@ void glShaderWindow::showAuxWindow()
         radio2->setChecked(false);
         radio3->setChecked(false);
         radio4->setChecked(false);
+        radio5->setChecked(false);
     }
     connect(radio1, SIGNAL(clicked()), this, SLOT(phongClicked()));
     connect(radio2, SIGNAL(clicked()), this, SLOT(blinnPhongClicked()));
     connect(radio3, SIGNAL(clicked()), this, SLOT(cookTorranceClicked()));
     connect(radio4, SIGNAL(clicked()), this, SLOT(goochClicked()));
+    connect(radio5, SIGNAL(clicked()), this, SLOT(toonClicked()));
 
     QVBoxLayout *vbox = new QVBoxLayout;
     vbox->addWidget(radio1);
     vbox->addWidget(radio2);
     vbox->addWidget(radio3);
     vbox->addWidget(radio4);
+    vbox->addWidget(radio5);
     groupBox->setLayout(vbox);
     buttons->addWidget(groupBox);
 
-    QGroupBox *groupBox2 = new QGroupBox("Environment Mapping");
+    // Shadow type selection box
+    QGroupBox *groupBox0 = new QGroupBox("Shadow type selection");
+    QRadioButton *shadow1 = new QRadioButton("PCF");
+    QRadioButton *shadow2 = new QRadioButton("PCSS");
+    QRadioButton *shadow3 = new QRadioButton("VSM");
+    QRadioButton *shadow4 = new QRadioButton("ESM");
+    if (PCSS)
+    {
+        shadow1->setChecked(false);
+        shadow2->setChecked(true);
+        shadow3->setChecked(false);
+        shadow4->setChecked(false);
+    }
+    else if (VSM)
+    {
+        shadow1->setChecked(false);
+        shadow2->setChecked(false);
+        shadow3->setChecked(true);
+        shadow4->setChecked(false);
+    }
+    else if (ESM)
+    {
+        shadow1->setChecked(false);
+        shadow2->setChecked(false);
+        shadow3->setChecked(false);
+        shadow4->setChecked(true);
+    }
+    else
+    {
+        shadow1->setChecked(true);
+        shadow2->setChecked(false);
+        shadow3->setChecked(false);
+        shadow4->setChecked(false);
+    }
+    connect(shadow1, SIGNAL(clicked()), this, SLOT(PCFClicked()));
+    connect(shadow2, SIGNAL(clicked()), this, SLOT(PCSSClicked()));
+    connect(shadow3, SIGNAL(clicked()), this, SLOT(VSMClicked()));
+    connect(shadow4, SIGNAL(clicked()), this, SLOT(ESMClicked()));
+
+    QVBoxLayout *vbox0 = new QVBoxLayout;
+    vbox0->addWidget(shadow1);
+    vbox0->addWidget(shadow2);
+    vbox0->addWidget(shadow3);
+    vbox0->addWidget(shadow4);
+    groupBox0->setLayout(vbox0);
+    buttons->addWidget(groupBox0);
+
+    // Environment Mapping box
+    QGroupBox *groupBox1 = new QGroupBox("Environment Mapping");
     QRadioButton *transparent1 = new QRadioButton("&Transparent");
     QRadioButton *transparent2 = new QRadioButton("&Opaque");
     if (transparent) transparent1->setChecked(true);
     else transparent2->setChecked(true);
     connect(transparent1, SIGNAL(clicked()), this, SLOT(transparentClicked()));
     connect(transparent2, SIGNAL(clicked()), this, SLOT(opaqueClicked()));
+    QVBoxLayout *vbox1 = new QVBoxLayout;
+    vbox1->addWidget(transparent1);
+    vbox1->addWidget(transparent2);
+    groupBox1->setLayout(vbox1);
+    buttons->addWidget(groupBox1);
+    outer->addLayout(buttons);
+
+    // Normal Mapping box
+    QGroupBox *groupBox2 = new QGroupBox("Normal Mapping");
+    QRadioButton *normal1 = new QRadioButton("&Texture with cartesian coordinates");
+    QRadioButton *normal2 = new QRadioButton("&Texture with spherical coordinates");
+    QRadioButton *normal3 = new QRadioButton("&With noise");
+    if (sphericalCoo)
+    {
+        normal1->setChecked(false);
+        normal2->setChecked(true);
+        normal3->setChecked(false);
+    }
+    else if (noiseNormal)
+    {
+        normal1->setChecked(false);
+        normal2->setChecked(false);
+        normal3->setChecked(true);
+    }
+    else
+    {
+        normal1->setChecked(true);
+        normal2->setChecked(false);
+        normal3->setChecked(false);
+    }
+    connect(normal1, SIGNAL(clicked()), this, SLOT(cartesianCooClicked()));
+    connect(normal2, SIGNAL(clicked()), this, SLOT(sphericalCooClicked()));
+    connect(normal3, SIGNAL(clicked()), this, SLOT(noiseNormalClicked()));
     QVBoxLayout *vbox2 = new QVBoxLayout;
-    vbox2->addWidget(transparent1);
-    vbox2->addWidget(transparent2);
+    vbox2->addWidget(normal1);
+    vbox2->addWidget(normal2);
+    vbox2->addWidget(normal3);
     groupBox2->setLayout(vbox2);
     buttons->addWidget(groupBox2);
     outer->addLayout(buttons);
 
+
+    // Perlin noise box
     QGroupBox *groupBox3 = new QGroupBox("Perlin Noise");
-    QRadioButton *model1 = new QRadioButton("&Color");
-    QRadioButton *model2 = new QRadioButton("&Illumination");
-    QRadioButton *model3 = new QRadioButton("&Normal Mapping");
-    if (noiseColor)
+    QRadioButton *model1 = new QRadioButton("&Marble");
+    QRadioButton *model2 = new QRadioButton("&Jade");
+    QRadioButton *model3 = new QRadioButton("&Wood");
+    if (noiseMarble)
     {
         model1->setChecked(true);
         model2->setChecked(false);
         model3->setChecked(false);
     }
-    else if (noiseIllumination)
+    else if (noiseJade)
     {
         model1->setChecked(false);
         model2->setChecked(true);
@@ -425,9 +555,9 @@ void glShaderWindow::showAuxWindow()
         model2->setChecked(false);
         model3->setChecked(true);
     }
-    connect(model1, SIGNAL(clicked()), this, SLOT(noiseColorClicked()));
-    connect(model2, SIGNAL(clicked()), this, SLOT(noiseIlluminationClicked()));
-    connect(model3, SIGNAL(clicked()), this, SLOT(noiseNormalMapClicked()));
+    connect(model1, SIGNAL(clicked()), this, SLOT(noiseMarbleClicked()));
+    connect(model2, SIGNAL(clicked()), this, SLOT(noiseJadeClicked()));
+    connect(model3, SIGNAL(clicked()), this, SLOT(noiseWoodClicked()));
     QVBoxLayout *vbox3 = new QVBoxLayout;
     vbox3->addWidget(model1);
     vbox3->addWidget(model2);
@@ -505,6 +635,42 @@ void glShaderWindow::showAuxWindow()
     hboxRoughness->addWidget(roughnessLabelValue);
     outer->addLayout(hboxRoughness);
     outer->addWidget(roughnessSlider);
+
+    // noiseRate slider
+    QSlider* noiseRateSlider = new QSlider(Qt::Horizontal);
+    noiseRateSlider->setTickPosition(QSlider::TicksBelow);
+    //noiseRateSlider->setTickInterval(100);
+    noiseRateSlider->setMinimum(0);
+    noiseRateSlider->setMaximum(100);
+    noiseRateSlider->setSliderPosition(noiseRate*100);
+    connect(noiseRateSlider,SIGNAL(valueChanged(int)),this,SLOT(updateNoiseRate(int)));
+    QLabel* noiseRateLabel = new QLabel("Noise contribution (3 for Wood) =");
+    QLabel* noiseRateLabelValue = new QLabel();
+    noiseRateLabelValue->setNum(noiseRate * 100);
+    connect(noiseRateSlider,SIGNAL(valueChanged(int)),noiseRateLabelValue,SLOT(setNum(int)));
+    QHBoxLayout *hboxNoiseRate= new QHBoxLayout;
+    hboxNoiseRate->addWidget(noiseRateLabel);
+    hboxNoiseRate->addWidget(noiseRateLabelValue);
+    outer->addLayout(hboxNoiseRate);
+    outer->addWidget(noiseRateSlider);
+
+    // noisePersistence slider
+    QSlider* noisePersistenceSlider = new QSlider(Qt::Horizontal);
+    noisePersistenceSlider->setTickPosition(QSlider::TicksBelow);
+    //noisePersistenceSlider->setTickInterval(100);
+    noisePersistenceSlider->setMinimum(0);
+    noisePersistenceSlider->setMaximum(100);
+    noisePersistenceSlider->setSliderPosition(noisePersistence*100);
+    connect(noisePersistenceSlider,SIGNAL(valueChanged(int)),this,SLOT(updateNoisePersistence(int)));
+    QLabel* noisePersistenceLabel = new QLabel("Noise persistence (default value : 0.4) =");
+    QLabel* noisePersistenceLabelValue = new QLabel();
+    noisePersistenceLabelValue->setNum(noisePersistence * 100);
+    connect(noisePersistenceSlider,SIGNAL(valueChanged(int)),noisePersistenceLabelValue,SLOT(setNum(int)));
+    QHBoxLayout *hboxNoisePersistence= new QHBoxLayout;
+    hboxNoisePersistence->addWidget(noisePersistenceLabel);
+    hboxNoisePersistence->addWidget(noisePersistenceLabelValue);
+    outer->addLayout(hboxNoisePersistence);
+    outer->addWidget(noisePersistenceSlider);
 
     auxWidget->setLayout(outer);
     auxWidget->show();
@@ -676,7 +842,6 @@ void glShaderWindow::bindSceneToProgram()
     ground_program->release();
     ground_vao.release();
 }
-
 void glShaderWindow::initializeTransformForScene()
 {
     // Set standard transformation and light source
@@ -858,6 +1023,18 @@ void glShaderWindow::loadTexturesForShaders() {
                 texture->bind(0);
                 if (m_program->uniformLocation("colorTexture") != -1) m_program->setUniformValue("colorTexture", 0);
                 if (ground_program->uniformLocation("colorTexture") != -1) ground_program->setUniformValue("colorTexture", 0);
+            }
+        }
+        if (m_program->uniformLocation("normalMap") != -1) {
+            // the shader wants an environment map, we load one.
+            glActiveTexture(GL_TEXTURE1);
+            normalMap = new QOpenGLTexture(QImage(normalMapName));
+            if (normalMap) {
+                normalMap->setWrapMode(QOpenGLTexture::MirroredRepeat);
+                normalMap->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+                normalMap->setMagnificationFilter(QOpenGLTexture::Nearest);
+                normalMap->bind(1);
+                m_program->setUniformValue("normalMap", 1);
             }
         }
         if (m_program->uniformLocation("envMap") != -1) {
@@ -1105,7 +1282,7 @@ void glShaderWindow::render()
     QMatrix4x4 lightCoordMatrix;
     QMatrix4x4 lightPerspective;
     float nearPlane;
-	float farPlane;
+    float farPlane;
     if ((ground_program->uniformLocation("shadowMap") != -1) || (m_program->uniformLocation("shadowMap") != -1) ){
         glActiveTexture(GL_TEXTURE2);
         glViewport(0, 0, shadowMapDimension, shadowMapDimension);
@@ -1136,18 +1313,18 @@ void glShaderWindow::render()
         float radius = modelMesh->bsphere.r;
         float fovy = 2.0 * (180.0/M_PI) * atan2(radius, lightDistance);
 
-		//lemming
-		/*
-		float nearPlane = (lightDistance * radius - radius) * 0.7;
-		float farPlane = (lightDistance * radius + radius) * 1.5;
-		lightPerspective.perspective(fovy, 1.0, nearPlane, farPlane);
-		*/
+        //lemming
+        /*
+        float nearPlane = (lightDistance * radius - radius) * 0.7;
+        float farPlane = (lightDistance * radius + radius) * 1.5;
+        lightPerspective.perspective(fovy, 1.0, nearPlane, farPlane);
+        */
 
-		//buddha
+        //buddha
 
-		float nearPlane = 300;
-		float farPlane = 800;
-		lightPerspective.perspective(40, 1.0, nearPlane, farPlane);
+        float nearPlane = 300;
+        float farPlane = 800;
+        lightPerspective.perspective(40, 1.0, nearPlane, farPlane);
 
 
         shadowMapGenerationProgram->setUniformValue("matrix", lightCoordMatrix);
@@ -1187,9 +1364,18 @@ void glShaderWindow::render()
     m_program->setUniformValue("lightMatrix", m_matrix[1]);
     m_program->setUniformValue("normalMatrix", m_matrix[0].normalMatrix());
     m_program->setUniformValue("lightIntensity", 1.0f);
+    m_program->setUniformValue("noiseRate", noiseRate);
+    m_program->setUniformValue("noisePersistence", noisePersistence);
     m_program->setUniformValue("blinnPhong", blinnPhong);
     m_program->setUniformValue("cookTorrance", cookTorrance);
     m_program->setUniformValue("gooch", gooch);
+    m_program->setUniformValue("toon", toon);
+    m_program->setUniformValue("cartesianCoo", cartesianCoo);
+    m_program->setUniformValue("sphericalCoo", sphericalCoo);
+    m_program->setUniformValue("noiseNormal", noiseNormal);
+    m_program->setUniformValue("noiseMarble", noiseMarble);
+    m_program->setUniformValue("noiseJade", noiseJade);
+    m_program->setUniformValue("noiseWood", noiseWood);
     m_program->setUniformValue("transparent", transparent);
     m_program->setUniformValue("lightIntensity", lightIntensity);
     m_program->setUniformValue("shininess", shininess);
@@ -1210,7 +1396,7 @@ void glShaderWindow::render()
     m_vao.release();
     m_program->release();
 
-    if (m_program->uniformLocation("earthDay") == -1) {
+    if (m_program->uniformLocation("earthDay") == -1 && m_program->uniformLocation("normalMap") == -1) {
         glActiveTexture(GL_TEXTURE0);
         ground_program->bind();
         ground_program->setUniformValue("lightPosition", lightPosition);
@@ -1222,10 +1408,12 @@ void glShaderWindow::render()
         ground_program->setUniformValue("blinnPhong", blinnPhong);
         ground_program->setUniformValue("cookTorrance", cookTorrance);
         ground_program->setUniformValue("gooch", gooch);
+        ground_program->setUniformValue("toon", toon);
         ground_program->setUniformValue("transparent", transparent);
         ground_program->setUniformValue("lightIntensity", lightIntensity);
         ground_program->setUniformValue("shininess", shininess);
         ground_program->setUniformValue("roughness", roughness);
+        ground_program->setUniformValue("noiseRate", noiseRate);
         ground_program->setUniformValue("eta", eta);
         ground_program->setUniformValue("radius", modelMesh->bsphere.r);
         if (ground_program->uniformLocation("colorTexture") != -1) ground_program->setUniformValue("colorTexture", 0);
@@ -1234,13 +1422,14 @@ void glShaderWindow::render()
             // TODO_TP3: send the right transform here
             ground_program->setUniformValue("worldToLightSpace", lightPerspective * lightCoordMatrix);
             m_program->setUniformValue("nearPlane", nearPlane);
-		    m_program->setUniformValue("farPlane", farPlane);
+            m_program->setUniformValue("farPlane", farPlane);
         }
         ground_vao.bind();
         glDrawElements(GL_TRIANGLES, g_numIndices, GL_UNSIGNED_INT, 0);
         ground_vao.release();
         ground_program->release();
     }
+
 #ifdef CRUDE_BUT_WORKS
     if (sm) {
         sm->release();

@@ -15,7 +15,7 @@ out vec3 eyeVector;
 out vec3 lightVector;
 out vec4 vertColor;
 out vec3 vertNormal;
-out vec3 vert;
+out vec3 vertPos;
 out vec2 textCoords;
 
 
@@ -29,7 +29,7 @@ void main( void )
     lightVector = normalize(lightPosition.xyz - vertPosition.xyz);
     eyeVector = normalize(eyePosition.xyz - vertPosition.xyz);
 
-    vert = vertex;
+    vertPos = vertex;
     vertNormal = normal;
     textCoords = texcoords;
 

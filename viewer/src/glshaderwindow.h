@@ -32,6 +32,7 @@ public:
 public slots:
     void openSceneFromFile();
     void openNewTexture();
+    void openNewNormalMap();
     void openNewEnvMap();
     void saveScene();
     void toggleFullScreen();
@@ -43,10 +44,14 @@ public slots:
     void blinnPhongClicked();
     void cookTorranceClicked();
     void goochClicked();
+    void toonClicked();
     void transparentClicked();
-    void noiseColorClicked();
-    void noiseIlluminationClicked();
-    void noiseNormalMapClicked();
+    void noiseMarbleClicked();
+    void noiseJadeClicked();
+    void noiseWoodClicked();
+    void noiseNormalClicked();
+    void cartesianCooClicked();
+    void sphericalCooClicked();
     void opaqueClicked();
     void PCSSClicked();
     void VSMClicked();
@@ -56,6 +61,8 @@ public slots:
     void updateShininess(int shininessSliderValue);
     void updateEta(int etaSliderValue);
     void updateRoughness(int roughnessSliderValue);
+    void updateNoiseRate(int noiseRateSliderValue);
+    void updateNoisePersistence(int noisePersistenceSliderValue);
 
 protected:
     void mousePressEvent(QMouseEvent *e);
@@ -79,6 +86,7 @@ private:
     QString  workingDirectory;
     QString  modelName;
     QString  textureName;
+    QString  normalMapName;
     QString  envMapName;
     trimesh::TriMesh* modelMesh;
     uchar* pixels;
@@ -93,17 +101,23 @@ private:
     // Parameters controlled by UI
     bool blinnPhong;
     bool gooch;
+    bool toon;
     bool cookTorrance;
     bool transparent;
-    bool noiseNormalMap;
-    bool noiseColor;
-    bool noiseIllumination;
+    bool noiseMarble;
+    bool noiseJade;
+    bool noiseWood;
+    bool sphericalCoo;
+    bool cartesianCoo;
+    bool noiseNormal;
     bool PCSS;
     bool VSM;
     bool ESM;
 
     float eta;
     float roughness;
+    float noiseRate;
+    float noisePersistence;
     float lightIntensity;
     float shininess;
     float lightDistance;

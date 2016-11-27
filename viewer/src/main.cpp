@@ -33,6 +33,11 @@ void setupFileMenu(QMenuBar* myMenuBar, glShaderWindow* glWindow, QApplication *
     openTextureAction->setStatusTip(myMenuBar->tr("&Opens a new texture image file"));
     glWindow->connect(openTextureAction, SIGNAL(triggered()), glWindow, SLOT(openNewTexture()));
     fileMenu->addAction(openTextureAction);
+    // Load new normal map
+    QAction* openNormalMapAction = new QAction(myMenuBar->tr("&Load normal map"), fileMenu);
+    openNormalMapAction->setStatusTip(myMenuBar->tr("&Opens a new normal map image file"));
+    glWindow->connect(openNormalMapAction, SIGNAL(triggered()), glWindow, SLOT(openNewNormalMap()));
+    fileMenu->addAction(openNormalMapAction);
     // Load new environment Map
     QAction* openEnvMapAction = new QAction(myMenuBar->tr("&Load environment map"), fileMenu);
     openEnvMapAction->setStatusTip(myMenuBar->tr("&Opens a new environment map file"));
@@ -121,7 +126,7 @@ int main( int argc, char* argv[] )
 {
     setlocale(LC_ALL,"C");
     QApplication app(argc, argv);
-    QString sceneName = "buddha50K.ply";
+    QString sceneName = "teapot.ply";
     QString textureName = "wildtextures-seamless-wood-planks.jpg";
     QString envMapName = "pisa.png";
 

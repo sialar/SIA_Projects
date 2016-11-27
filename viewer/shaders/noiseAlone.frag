@@ -54,7 +54,13 @@ uniform sampler2D permTexture;
 uniform float radius; // object size.
 uniform float lightIntensity;
 uniform bool blinnPhong;
+uniform bool noiseMarble;
+uniform bool noiseJade;
+uniform bool noiseWood;
+uniform bool noiseNormal;
 uniform float shininess;
+uniform float noiseRate;
+uniform float noisePersistence;
 uniform float eta;
 /*
  * Both 2D and 3D texture coordinates are defined, for testing purposes.
@@ -220,17 +226,17 @@ vec3 perlinNoise(in vec3 v) {
     vec3 amplitude = vec3(1);
     int octaves = 5;
     float lacunarity = 2;
-    float persistence = 0.4;
+    //float persistence = 0.4;
     v *= 8.0;
     for (int n = 0; n < octaves ; n++) {
         val += snoise(v) * amplitude;
         v *= lacunarity;
-        amplitude *= persistence;
+        amplitude *= noisePersistence;
     }
     return val;
 }
 
-vec4 computeIllumination(float ka, float kd, float ks, vec4 color)
+vec4 computeIllumination(float ka, float kd, float ks, vec4 color, int colorIndex)
 {
     // Normalize vectors
     vec3 N = normalize(vertNormal);
@@ -250,8 +256,14 @@ vec4 computeIllumination(float ka, float kd, float ks, vec4 color)
     // Indice de Fresnel
     float F0 = pow(1-eta,2) / pow(1+eta,2);
     float F = F0 + (1-F0) * pow( (1- dot(h,V)), 5 );
-
-    return (ambiant + diffuse + F * ( (blinnPhong) ? blinnPhongSpecular : phongSpecular));
+    float visibility = 1.;
+    if (colorIndex == 0 || colorIndex == 2)
+         visibility = 0;
+    else if (colorIndex == 1 || colorIndex == 3)
+         visibility = 0.5;
+    else
+        visibility = 1;
+    return (ambiant + diffuse + visibility * F * ( (blinnPhong) ? blinnPhongSpecular : phongSpecular));
 }
 
 // Retourne l'indice de la couleur qui correspond à la valeur "value" dans une rampe infinie ayant "step" comme pas.
@@ -273,15 +285,16 @@ void main( void )
     colors[3] = vec4(0.15, 0.15, 0.26, 1.0); /* medium dark blue */
     colors[4] = vec4(0.10, 0.10, 0.20, 1.0); /* dark blue        */
 
-    float noiseValue = 0.5 + 0.5 * perlinNoise(vertPos.xyz/radius).x;
+    float noiseValue = (1-noiseRate) + noiseRate * perlinNoise(vertPos.xyz/radius).x;
 
     // 1ere partie
     int colorIndex = computeColor(5,noiseValue,0.2);
-    fragColor = computeIllumination(0.2,0.2,0.6,colors[colorIndex]);
+    fragColor = computeIllumination(0.2,0.2,0.6,colors[colorIndex], colorIndex);
 
     // 2eme partie (materiau plus structuré)
-    colorIndex = computeColor( 5, noiseValue * abs(vertPos.x)/10, 0.1);
-    fragColor = computeIllumination(0.2,0.2,0.6,colors[colorIndex]);
-
-
+    if (noiseWood)
+    {
+        colorIndex = computeColor( 5, noiseValue * abs(vertPos.x+0.5*vertPos.y+100)/100, 0.05);
+        fragColor = computeIllumination(0.2,0.2,0.6,colors[colorIndex], colorIndex);
+    }
 }
