@@ -188,10 +188,8 @@ void glShaderWindow::PCFClicked()
     PCSS = false;
     VSM = false;
     ESM = false;
-
-    //ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
     //m_program = prepareShaderProgram(":/PCF.vert", ":/PCF.frag");
-    ground_program = prepareShaderProgram(":/textured_PCF.vert", ":/textured_PCF.frag");
+    //ground_program = prepareShaderProgram(":/textured_PCF.vert", ":/textured_PCF.frag");
     setShader("PCF");
     renderNow();
 }
@@ -201,9 +199,8 @@ void glShaderWindow::PCSSClicked()
     PCSS = true;
     VSM = false;
     ESM = false;
-    //ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
     //m_program = prepareShaderProgram(":/PCSS.vert", ":/PCSS.frag");
-    ground_program = prepareShaderProgram(":/textured_PCSS.vert", ":/textured_PCSS.frag");
+    //ground_program = prepareShaderProgram(":/textured_PCSS.vert", ":/textured_PCSS.frag");
     setShader("PCSS");
     renderNow();
 }
@@ -213,10 +210,8 @@ void glShaderWindow::VSMClicked()
     PCSS = false;
     VSM = true;
     ESM = false;
-
-    //ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
     //m_program = prepareShaderProgram(":/VSM.vert", ":/VSM.frag");
-    ground_program = prepareShaderProgram(":/textured_VSM.vert", ":/textured_VSM.frag");
+    //ground_program = prepareShaderProgram(":/textured_VSM.vert", ":/textured_VSM.frag");
     setShader("VSM");
     renderNow();
 }
@@ -226,10 +221,8 @@ void glShaderWindow::ESMClicked()
     PCSS = false;
     VSM = false;
     ESM = true;
-
-    //ground_program = prepareShaderProgram(":/3_textured.vert", ":/3_textured.frag");
     //m_program = prepareShaderProgram(":/ESM.vert", ":/ESM.frag");
-    ground_program = prepareShaderProgram(":/textured_ESM.vert", ":/textured_ESM.frag");
+    //ground_program = prepareShaderProgram(":/textured_ESM.vert", ":/textured_ESM.frag");
     setShader("ESM");
     renderNow();
 }
@@ -239,6 +232,7 @@ void glShaderWindow::phongClicked()
     blinnPhong = false;
     cookTorrance = false;
     gooch = false;
+    //m_program = prepareShaderProgram(":/illumination.vert", ":/illumination.frag");
     renderNow();
 }
 
@@ -248,6 +242,7 @@ void glShaderWindow::blinnPhongClicked()
     cookTorrance = false;
     gooch = false;
     toon = false;
+    //m_program = prepareShaderProgram(":/illumination.vert", ":/illumination.frag");
     renderNow();
 }
 
@@ -257,6 +252,7 @@ void glShaderWindow::cookTorranceClicked()
     cookTorrance = true;
     gooch = false;
     toon = false;
+    //m_program = prepareShaderProgram(":/illumination.vert", ":/illumination.frag");
     renderNow();
 }
 
@@ -266,6 +262,7 @@ void glShaderWindow::goochClicked()
     cookTorrance = false;
     gooch = true;
     toon = false;
+    //m_program = prepareShaderProgram(":/illumination.vert", ":/illumination.frag");
     renderNow();
 }
 
@@ -275,12 +272,21 @@ void glShaderWindow::toonClicked()
     cookTorrance = false;
     gooch = false;
     toon = true;
+    //m_program = prepareShaderProgram(":/illumination.vert", ":/illumination.frag");
     renderNow();
 }
 
 void glShaderWindow::transparentClicked()
 {
     transparent = true;
+    //m_program = prepareShaderProgram(":/5_envMap.vert", ":/5_envMap.frag");
+    renderNow();
+}
+
+void glShaderWindow::opaqueClicked()
+{
+    transparent = false;
+    //m_program = prepareShaderProgram(":/5_envMap.vert", ":/5_envMap.frag");
     renderNow();
 }
 
@@ -289,6 +295,7 @@ void glShaderWindow::noiseMarbleClicked()
     noiseMarble = true;
     noiseJade = false;
     noiseWood = false;
+    //m_program = prepareShaderProgram(":/noiseAlone.vert", ":/noiseAlone.frag");
     renderNow();
 }
 
@@ -297,6 +304,7 @@ void glShaderWindow::noiseJadeClicked()
     noiseMarble = false;
     noiseJade = true;
     noiseWood = false;
+    //m_program = prepareShaderProgram(":/noiseAlone.vert", ":/noiseAlone.frag");
     renderNow();
 }
 
@@ -305,6 +313,7 @@ void glShaderWindow::noiseWoodClicked()
     noiseMarble = false;
     noiseJade = false;
     noiseWood = true;
+    //m_program = prepareShaderProgram(":/noiseAlone.vert", ":/noiseAlone.frag");
     renderNow();
 }
 
@@ -313,6 +322,7 @@ void glShaderWindow::noiseNormalClicked()
     cartesianCoo = false;
     sphericalCoo = false;
     noiseNormal = true;
+    //m_program = prepareShaderProgram(":/normalMap.vert", ":/normalMap.frag");
     renderNow();
 }
 
@@ -321,6 +331,7 @@ void glShaderWindow::cartesianCooClicked()
     cartesianCoo = true;
     sphericalCoo = false;
     noiseNormal = false;
+    //m_program = prepareShaderProgram(":/normalMap.vert", ":/normalMap.frag");
     renderNow();
 }
 
@@ -329,24 +340,21 @@ void glShaderWindow::sphericalCooClicked()
     cartesianCoo = false;
     sphericalCoo = true;
     noiseNormal = false;
+    //m_program = prepareShaderProgram(":/normalMap.vert", ":/normalMap.frag");
     renderNow();
 }
 
 void glShaderWindow::withNoiseClicked()
 {
     withNoise = true;
+    //m_program = prepareShaderProgram(":/displacementMap.vert", ":/displacementMap.frag");
     renderNow();
 }
 
 void glShaderWindow::fromTextureClicked()
 {
     withNoise = false;
-    renderNow();
-}
-
-void glShaderWindow::opaqueClicked()
-{
-    transparent = false;
+    //m_program = prepareShaderProgram(":/displacementMap.vert", ":/displacementMap.frag");
     renderNow();
 }
 

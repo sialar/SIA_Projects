@@ -1,3 +1,7 @@
+/*
+ * To create offsets of one texel and one half texel in the
+ * texture lookup, we need to know the texture image size.
+ */
 #version 130
 /*
  * 3D Perlin noise (simplex), in a GLSL fragment shader.
@@ -50,6 +54,7 @@ THE SOFTWARE.
  * replaced by the w component of the 4D gradient.
  * 3D simplex noise uses only permTexture.
  */
+
 uniform sampler2D permTexture;
 uniform float radius; // object size.
 uniform float lightIntensity;
@@ -72,7 +77,6 @@ in vec3 lightVector;
 in vec3 vertNormal;
 
 out vec4 fragColor;
-
 /*
  * To create offsets of one texel and one half texel in the
  * texture lookup, we need to know the texture image size.
@@ -155,11 +159,11 @@ float snoise(const in vec3 P) {
 #define G3 0.166666666667
 
   // Skew the (x,y,z) space to determine which cell of 6 simplices we're in
-        float s = (P.x + P.y + P.z) * 0.333333333333; // Factor for 3D skewing
+        float s = (P.x + P.y + P.z) * F3; // Factor for 3D skewing
   vec3 Pi = floor(P + s);
-  float t = (Pi.x + Pi.y + Pi.z) * 0.166666666667;
+  float t = (Pi.x + Pi.y + Pi.z) * G3;
   vec3 P0 = Pi - t; // Unskew the cell origin back to (x,y,z) space
-  Pi = Pi * 0.00390625 + 0.001953125; // Integer part, scaled and offset for texture lookup
+  Pi = Pi * ONE + ONEHALF; // Integer part, scaled and offset for texture lookup
 
   vec3 Pf0 = P - P0;  // The x,y distances from the cell origin
 
@@ -171,8 +175,8 @@ float snoise(const in vec3 P) {
   simplex(Pf0, o1, o2);
 
   // Noise contribution from simplex origin
-  float perm0 = texture2D(permTexture, Pi.xy).a;
-  vec3  grad0 = texture2D(permTexture, vec2(perm0, Pi.z)).rgb * 4.0 - 1.0;
+  float perm0 = texture(permTexture, Pi.xy).a;
+  vec3  grad0 = texture(permTexture, vec2(perm0, Pi.z)).rgb * 4.0 - 1.0;
   float t0 = 0.6 - dot(Pf0, Pf0);
   float n0;
   if (t0 < 0.0) n0 = 0.0;
@@ -182,9 +186,9 @@ float snoise(const in vec3 P) {
   }
 
   // Noise contribution from second corner
-  vec3 Pf1 = Pf0 - o1 + 0.166666666667;
-  float perm1 = texture2D(permTexture, Pi.xy + o1.xy*0.00390625).a;
-  vec3  grad1 = texture2D(permTexture, vec2(perm1, Pi.z + o1.z*0.00390625)).rgb * 4.0 - 1.0;
+  vec3 Pf1 = Pf0 - o1 + G3;
+  float perm1 = texture(permTexture, Pi.xy + o1.xy*ONE).a;
+  vec3  grad1 = texture(permTexture, vec2(perm1, Pi.z + o1.z*ONE)).rgb * 4.0 - 1.0;
   float t1 = 0.6 - dot(Pf1, Pf1);
   float n1;
   if (t1 < 0.0) n1 = 0.0;
@@ -194,9 +198,9 @@ float snoise(const in vec3 P) {
   }
 
   // Noise contribution from third corner
-  vec3 Pf2 = Pf0 - o2 + 2.0 * 0.166666666667;
-  float perm2 = texture2D(permTexture, Pi.xy + o2.xy*0.00390625).a;
-  vec3  grad2 = texture2D(permTexture, vec2(perm2, Pi.z + o2.z*0.00390625)).rgb * 4.0 - 1.0;
+  vec3 Pf2 = Pf0 - o2 + 2.0 * G3;
+  float perm2 = texture(permTexture, Pi.xy + o2.xy*ONE).a;
+  vec3  grad2 = texture(permTexture, vec2(perm2, Pi.z + o2.z*ONE)).rgb * 4.0 - 1.0;
   float t2 = 0.6 - dot(Pf2, Pf2);
   float n2;
   if (t2 < 0.0) n2 = 0.0;
@@ -206,9 +210,9 @@ float snoise(const in vec3 P) {
   }
 
   // Noise contribution from last corner
-  vec3 Pf3 = Pf0 - vec3(1.0-3.0*0.166666666667);
-  float perm3 = texture2D(permTexture, Pi.xy + vec2(0.00390625, 0.00390625)).a;
-  vec3  grad3 = texture2D(permTexture, vec2(perm3, Pi.z + 0.00390625)).rgb * 4.0 - 1.0;
+  vec3 Pf3 = Pf0 - vec3(1.0-3.0*G3);
+  float perm3 = texture(permTexture, Pi.xy + vec2(ONE, ONE)).a;
+  vec3  grad3 = texture(permTexture, vec2(perm3, Pi.z + ONE)).rgb * 4.0 - 1.0;
   float t3 = 0.6 - dot(Pf3, Pf3);
   float n3;
   if(t3 < 0.0) n3 = 0.0;
@@ -236,7 +240,10 @@ vec3 perlinNoise(in vec3 v) {
     return val;
 }
 
-vec4 computeIllumination(float ka, float kd, float ks, vec4 color, int colorIndex)
+
+
+
+vec4 computeIllumination(float ka, float kd, float ks, vec4 color, int colorIndex, bool contrast)
 {
     // Normalize vectors
     vec3 N = normalize(vertNormal);
@@ -256,13 +263,7 @@ vec4 computeIllumination(float ka, float kd, float ks, vec4 color, int colorInde
     // Indice de Fresnel
     float F0 = pow(1-eta,2) / pow(1+eta,2);
     float F = F0 + (1-F0) * pow( (1- dot(h,V)), 5 );
-    float visibility = 1.;
-    if (colorIndex == 0 || colorIndex == 2)
-         visibility = 0;
-    else if (colorIndex == 1 || colorIndex == 3)
-         visibility = 0.5;
-    else
-        visibility = 1;
+    float visibility = (contrast) ? 1 - length(color)/2 : 1;
     return (ambiant + diffuse + visibility * F * ( (blinnPhong) ? blinnPhongSpecular : phongSpecular));
 }
 
@@ -271,39 +272,69 @@ int computeColor(int colorsLength, float value, float step)
 {
     for (int k=0; k<floor(1/step); k++)
         for (int l=0; l< colorsLength; l++)
-            if (value > l*step + 5*k*step && value <= (l+1)*step + 5*k*step)
+            if (value > l*step + colorsLength*k*step && value <= (l+1)*step + colorsLength*k*step)
                 return l;
+}
+
+vec4 convertColor(float r, float g, float b)
+{
+    return vec4(r/255,g/255,b/255,1);
 }
 
 void main( void )
 {
-   {
     // Define the colors ramp
-    vec4 marbleColors[5];
-    marbleColors[0] = vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
-    marbleColors[1] = vec4(0.20, 0.20, 0.30, 1.0); /* medium blue      */
-    marbleColors[2] = vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
-    marbleColors[3] = vec4(0.15, 0.15, 0.26, 1.0); /* medium dark blue */
-    marbleColors[4] = vec4(0.10, 0.10, 0.20, 1.0); /* dark blue        */
+    vec4 marbleColors[10];
+    marbleColors[0] = 4*vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
+    marbleColors[1] = 4*vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
+    marbleColors[2] = 4*vec4(0.20, 0.20, 0.30, 1.0); /* medium blue      */
+    marbleColors[3] = 4*vec4(0.20, 0.20, 0.30, 1.0); /* medium blue      */
+    marbleColors[4] = 4*vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
+    marbleColors[5] = 4*vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
+    marbleColors[6] = 4*vec4(0.15, 0.15, 0.26, 1.0); /* medium dark blue */
+    marbleColors[7] = 4*vec4(0.15, 0.15, 0.26, 1.0); /* medium dark blue */
+    marbleColors[8] = 4*vec4(0.10, 0.10, 0.20, 1.0); /* dark blue        */
+    marbleColors[9] = 4*vec4(0.10, 0.10, 0.20, 1.0); /* dark blue        */
 
-    vec4 woodColors[5];
-    woodColors[0] = vec4(0.68, 0.55, 0.39, 1.0);
-    woodColors[1] = vec4(0.58, 0.34, 0.15, 1.0);
-    woodColors[0] = vec4(0.68, 0.55, 0.39, 1.0);
-    woodColors[2] = vec4(0.52, 0.2, 0.06, 1.0);
-    woodColors[4] = vec4(0.49, 0.2, 0, 1.0);
+    vec4 jadeColors[10];
+
+    jadeColors[0] = 1.5*convertColor(56, 111, 72);
+    jadeColors[1] = 1.5*convertColor(56, 111, 72);
+    jadeColors[2] = 1.5*convertColor(56, 111, 72);
+    jadeColors[3] = 1.7*convertColor(56, 111, 72);
+    jadeColors[4] = 1.7*convertColor(56, 111, 72);
+    jadeColors[5] = convertColor(176, 242, 182);
+    jadeColors[6] = 2*convertColor(56, 111, 72);
+    jadeColors[7] = 2*convertColor(56, 111, 72);
+    jadeColors[8] = 2*convertColor(56, 111, 72);
+    jadeColors[9] = 2*convertColor(56, 111, 72);
+
+    vec4 woodColors[10];
+    woodColors[0] = convertColor(88, 41, 0);
+    woodColors[1] = convertColor(88, 41, 0);
+    woodColors[2] = 0.9*convertColor(126, 51, 0);
+    woodColors[3] = convertColor(126, 51, 0);
+    woodColors[4] = 1.2*convertColor(126, 51, 0);
+    woodColors[5] = 1.3*convertColor(126, 51, 0);
+    woodColors[6] = 1.5*convertColor(126, 51, 0);
+    woodColors[7] = 1.5*convertColor(126, 51, 0);
+    woodColors[8] = 1.8*convertColor(126, 51, 0);
+    woodColors[9] = 2*convertColor(126, 51, 0);
 
     float noiseValue = (1-noiseRate) + noiseRate * perlinNoise(vertPos.xyz/radius).x;
 
-    // 1ere partie
-    int colorIndex = computeColor(5,noiseValue,0.2);
-    fragColor = computeIllumination(0.2,0.2,0.6,marbleColors[colorIndex], colorIndex);
+    int colorIndex = computeColor(10,noiseValue,0.1);
+    if (noiseMarble)
+        fragColor = computeIllumination(0.2,0.2,0.6,marbleColors[colorIndex], colorIndex, false);
 
-    // 2eme partie (materiau plus structuré)
+    if (noiseJade)
+    {
+        colorIndex = computeColor(8,noiseValue,0.1);
+        fragColor = computeIllumination(0.2,0.2,0.6,jadeColors[colorIndex], colorIndex, false);
+    }
     if (noiseWood)
     {
-        colorIndex = computeColor( 5, noiseValue * abs(vertPos.x+0.5*vertPos.y+100)/100, 0.05);
-        fragColor = computeIllumination(0.2,0.2,0.6,woodColors[colorIndex], colorIndex);
+        colorIndex = computeColor( 10, noiseValue * abs(vertPos.x+0.5*vertPos.y+100)/100, 0.005);
+        fragColor = computeIllumination(0.2,0.2,0.6,woodColors[colorIndex], colorIndex, true);
     }
-}
 }
