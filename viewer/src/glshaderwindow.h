@@ -25,7 +25,7 @@ public:
     void initialize();
     void render();
     void resize(int x, int y);
-    void setWorkingDirectory(QString& myPath, QString& myName, QString& texture, QString& envMap);
+    void setWorkingDirectory(QString& myPath, QString& myName, QString& texture, QString& normalMapName, QString& envMap);
     inline const QStringList& fragShaderSuffix() { return m_fragShaderSuffix;};
     inline const QStringList& vertShaderSuffix() { return m_vertShaderSuffix;};
 

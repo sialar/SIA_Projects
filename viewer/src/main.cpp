@@ -126,8 +126,9 @@ int main( int argc, char* argv[] )
 {
     setlocale(LC_ALL,"C");
     QApplication app(argc, argv);
-    QString sceneName = "sphere.ply";
+    QString sceneName = "lemming.ply";
     QString textureName = "wildtextures-seamless-wood-planks.jpg";
+    QString normalMapName = "metal_crosshatch_pattern_6190173.JPG";    
     QString envMapName = "pisa.png";
 
     // Read scene name from arguments:
@@ -158,7 +159,7 @@ int main( int argc, char* argv[] )
 #else
     appPath = appPath + "/models/";
 #endif
-    window.setWorkingDirectory(appPath, sceneName, textureName, envMapName);
+    window.setWorkingDirectory(appPath, sceneName, textureName, normalMapName, envMapName);
     window.show();
 
     // Menu bar to be shared between all windows.

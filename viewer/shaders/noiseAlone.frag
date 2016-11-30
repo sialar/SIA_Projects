@@ -277,24 +277,33 @@ int computeColor(int colorsLength, float value, float step)
 
 void main( void )
 {
+   {
     // Define the colors ramp
-    vec4 colors[5];
-    colors[0] = vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
-    colors[1] = vec4(0.20, 0.20, 0.30, 1.0); /* medium blue      */
-    colors[2] = vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
-    colors[3] = vec4(0.15, 0.15, 0.26, 1.0); /* medium dark blue */
-    colors[4] = vec4(0.10, 0.10, 0.20, 1.0); /* dark blue        */
+    vec4 marbleColors[5];
+    marbleColors[0] = vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
+    marbleColors[1] = vec4(0.20, 0.20, 0.30, 1.0); /* medium blue      */
+    marbleColors[2] = vec4(0.25, 0.25, 0.35, 1.0); /* pale blue        */
+    marbleColors[3] = vec4(0.15, 0.15, 0.26, 1.0); /* medium dark blue */
+    marbleColors[4] = vec4(0.10, 0.10, 0.20, 1.0); /* dark blue        */
+
+    vec4 woodColors[5];
+    woodColors[0] = vec4(0.68, 0.55, 0.39, 1.0);
+    woodColors[1] = vec4(0.58, 0.34, 0.15, 1.0);
+    woodColors[0] = vec4(0.68, 0.55, 0.39, 1.0);
+    woodColors[2] = vec4(0.52, 0.2, 0.06, 1.0);
+    woodColors[4] = vec4(0.49, 0.2, 0, 1.0);
 
     float noiseValue = (1-noiseRate) + noiseRate * perlinNoise(vertPos.xyz/radius).x;
 
     // 1ere partie
     int colorIndex = computeColor(5,noiseValue,0.2);
-    fragColor = computeIllumination(0.2,0.2,0.6,colors[colorIndex], colorIndex);
+    fragColor = computeIllumination(0.2,0.2,0.6,marbleColors[colorIndex], colorIndex);
 
     // 2eme partie (materiau plus structuré)
     if (noiseWood)
     {
         colorIndex = computeColor( 5, noiseValue * abs(vertPos.x+0.5*vertPos.y+100)/100, 0.05);
-        fragColor = computeIllumination(0.2,0.2,0.6,colors[colorIndex], colorIndex);
+        fragColor = computeIllumination(0.2,0.2,0.6,woodColors[colorIndex], colorIndex);
     }
+}
 }

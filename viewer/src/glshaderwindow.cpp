@@ -25,8 +25,8 @@ glShaderWindow::glShaderWindow(QWindow *parent)
       g_vertices(0), g_normals(0), g_texcoords(0), g_colors(0), g_indices(0),
       environmentMap(0), texture(0), normalMap(0), permTexture(0), pixels(0), mouseButton(Qt::NoButton), auxWidget(0),
       blinnPhong(true), transparent(true), gooch(false), toon(false), cookTorrance(false), eta(0), noiseRate(0.5), noisePersistence(0.4),
-      roughness(0.3), lightIntensity(1.5f), noiseMarble(false), noiseJade(true), noiseWood(false), cartesianCoo(false), withNoise(true),
-      sphericalCoo(false), noiseNormal(false), PCSS(true), VSM(false), ESM(false), lightSize(1), maxFilterSize(5), biasCoeff(10),
+      roughness(0.3), lightIntensity(1.5f), noiseMarble(false), noiseJade(true), noiseWood(false), withNoise(true),
+      sphericalCoo(false), cartesianCoo(true), noiseNormal(false), PCSS(true), VSM(false), ESM(false), lightSize(1), maxFilterSize(5), biasCoeff(10),
       shininess(50.0f), lightDistance(5.0f), groundDistance(0.78), shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
       m_indexBuffer(QOpenGLBuffer::IndexBuffer), ground_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
@@ -1273,11 +1273,12 @@ QOpenGLShaderProgram* glShaderWindow::prepareShaderProgram(const QString& vertex
     return program;
 }
 
-void glShaderWindow::setWorkingDirectory(QString& myPath, QString& myName, QString& texture, QString& envMap)
+void glShaderWindow::setWorkingDirectory(QString& myPath, QString& myName, QString& texture, QString& normalMap, QString& envMap)
 {
     workingDirectory = myPath;
     modelName = myPath + myName;
     textureName = myPath + "../textures/" + texture;
+    normalMapName = myPath + "../textures/" + normalMap;
     envMapName = myPath + "../textures/" + envMap;
 }
 

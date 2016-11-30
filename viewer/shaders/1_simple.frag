@@ -1,5 +1,4 @@
-#version 130
-
+#version 410
 in vec3 vertNormal;
 in vec3 vertColor;
 

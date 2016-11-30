@@ -1,5 +1,4 @@
-#version 130
-
+#version 410
 uniform mat4 matrix;
 uniform mat4 perspective;
 uniform mat3 normalMatrix;
