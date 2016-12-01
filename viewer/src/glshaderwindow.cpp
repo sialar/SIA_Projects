@@ -9,6 +9,7 @@
 #include <QGroupBox>
 #include <QRadioButton>
 #include <QSlider>
+#include <QPushButton>
 #include <QLabel>
 // Layouts for User interface
 #include <QVBoxLayout>
@@ -24,8 +25,8 @@ glShaderWindow::glShaderWindow(QWindow *parent)
       m_program(0), ground_program(0), shadowMapGenerationProgram(0),
       g_vertices(0), g_normals(0), g_texcoords(0), g_colors(0), g_indices(0),
       environmentMap(0), texture(0), normalMap(0), permTexture(0), pixels(0), mouseButton(Qt::NoButton), auxWidget(0),
-      blinnPhong(true), transparent(true), gooch(false), toon(false), cookTorrance(false), eta(0), noiseRate(0.5), noisePersistence(0.4),
-      roughness(0.3), lightIntensity(1.5f), noiseMarble(false), noiseJade(true), noiseWood(false), withNoise(true),
+      blinnPhong(true), transparent(true), gooch(false), toon(false), cookTorrance(false), eta(0.1), noiseRate(0.5), noisePersistence(0.4),
+      roughness(0.3), lightIntensity(1.5f), noiseMarble(false), noiseJade(true), noiseWood(false), showSphere(false),
       sphericalCoo(false), cartesianCoo(true), noiseNormal(false), PCSS(true), VSM(false), ESM(false), lightSize(1), maxFilterSize(5), biasCoeff(10),
       shininess(50.0f), lightDistance(5.0f), groundDistance(0.78), shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
       m_indexBuffer(QOpenGLBuffer::IndexBuffer), ground_indexBuffer(QOpenGLBuffer::IndexBuffer)
@@ -232,6 +233,7 @@ void glShaderWindow::phongClicked()
     blinnPhong = false;
     cookTorrance = false;
     gooch = false;
+    toon = false;
     //m_program = prepareShaderProgram(":/illumination.vert", ":/illumination.frag");
     renderNow();
 }
@@ -341,20 +343,6 @@ void glShaderWindow::sphericalCooClicked()
     sphericalCoo = true;
     noiseNormal = false;
     //m_program = prepareShaderProgram(":/normalMap.vert", ":/normalMap.frag");
-    renderNow();
-}
-
-void glShaderWindow::withNoiseClicked()
-{
-    withNoise = true;
-    //m_program = prepareShaderProgram(":/displacementMap.vert", ":/displacementMap.frag");
-    renderNow();
-}
-
-void glShaderWindow::fromTextureClicked()
-{
-    withNoise = false;
-    //m_program = prepareShaderProgram(":/displacementMap.vert", ":/displacementMap.frag");
     renderNow();
 }
 
@@ -545,7 +533,21 @@ void glShaderWindow::showAuxWindow()
     groupBox1->setLayout(vbox1);
     buttons->addWidget(groupBox1);
     outer->addLayout(buttons);
-
+/*
+    QGroupBox *groupBox5 = new QGroupBox("");
+    QRadioButton *bouton1 = new QRadioButton("Show bounding sphere");
+    QRadioButton *bouton2 = new QRadioButton("Hide bounding sphere");
+    if (showSphere) bouton1->setChecked(true);
+    else bouton2->setChecked(true);
+    connect(bouton1, SIGNAL(clicked()), this, SLOT(showSphereClicked()));
+    connect(bouton2, SIGNAL(clicked()), this, SLOT(hideSphereClicked()));
+    QVBoxLayout *vbox5 = new QVBoxLayout;
+    vbox5->addWidget(bouton1);
+    vbox5->addWidget(bouton2);
+    groupBox5->setLayout(vbox5);
+    buttons->addWidget(groupBox5);
+    outer->addLayout(buttons);
+*/
     // Normal Mapping box
     QGroupBox *groupBox2 = new QGroupBox("Normal Mapping");
     QRadioButton *normal1 = new QRadioButton("&Texture with cartesian coordinates");
@@ -578,21 +580,6 @@ void glShaderWindow::showAuxWindow()
     vbox2->addWidget(normal3);
     groupBox2->setLayout(vbox2);
     buttons->addWidget(groupBox2);
-    outer->addLayout(buttons);
-
-    // Displacement Mapping box
-    QGroupBox *groupBox4 = new QGroupBox("Displacement Mapping");
-    QRadioButton *displacement1 = new QRadioButton("&With noise");
-    QRadioButton *displacement2 = new QRadioButton("&From texture");
-    if (withNoise) displacement1->setChecked(true);
-    else displacement2->setChecked(true);
-    connect(displacement1, SIGNAL(clicked()), this, SLOT(withNoiseClicked()));
-    connect(displacement2, SIGNAL(clicked()), this, SLOT(fromTextureClicked()));
-    QVBoxLayout *vbox4 = new QVBoxLayout;
-    vbox4->addWidget(displacement1);
-    vbox4->addWidget(displacement2);
-    groupBox4->setLayout(vbox4);
-    buttons->addWidget(groupBox4);
     outer->addLayout(buttons);
 
     // Perlin noise box
@@ -668,7 +655,7 @@ void glShaderWindow::showAuxWindow()
     etaSlider->setTickPosition(QSlider::TicksBelow);
     etaSlider->setTickInterval(100);
     etaSlider->setMinimum(0);
-    etaSlider->setMaximum(500);
+    etaSlider->setMaximum(100);
     etaSlider->setSliderPosition(eta*100);
     connect(etaSlider,SIGNAL(valueChanged(int)),this,SLOT(updateEta(int)));
     QLabel* etaLabel = new QLabel("Eta (index of refraction) * 100 =");
@@ -793,6 +780,19 @@ void glShaderWindow::showAuxWindow()
     auxWidget->show();
 }
 
+/*
+void glShaderWindow::showSphereClicked()
+{
+    showSphere = true;
+    renderNow();
+}
+
+void glShaderWindow::hideSphereClicked()
+{
+    showSphere = true;
+    renderNow();
+}
+*/
 
 void glShaderWindow::bindSceneToProgram()
 {
@@ -884,18 +884,22 @@ void glShaderWindow::bindSceneToProgram()
     if (g_colors == 0) g_colors = new trimesh::point[g_numPoints];
     if (g_texcoords == 0) g_texcoords = new trimesh::vec2[g_numPoints];
     if (g_indices == 0) g_indices = new int[6 * g_numPoints];
-    for (int i = 0; i < numR; i++) {
-        for (int j = 0; j < numTh; j++) {
-            int p = i + j * numR;
-            g_normals[p] = trimesh::point(0, 1, 0);
-            g_colors[p] = trimesh::point(0.6, 0.85, 0.9);
-            float theta = (float)j * 2 * M_PI / numTh;
-            float rad =  5.0 * radius * (float) i / numR;
-            g_vertices[p] = center + trimesh::point(rad * cos(theta), - groundDistance * radius, rad * sin(theta));
-            rad =  5.0 * (float) i / numR;
-            g_texcoords[p] = trimesh::vec2(rad * cos(theta), rad * sin(theta));
+
+    if (showSphere)
+        drawSphere(numR, numTh);
+    else
+        for (int i = 0; i < numR; i++) {
+            for (int j = 0; j < numTh; j++) {
+                int p = i + j * numR;
+                g_normals[p] = trimesh::point(0, 1, 0);
+                g_colors[p] = trimesh::point(0.6, 0.85, 0.9);
+                float theta = (float)j * 2 * M_PI / numTh;
+                float rad =  5.0 * radius * (float) i / numR;
+                g_vertices[p] = center + trimesh::point(rad * cos(theta), - groundDistance * radius, rad * sin(theta));
+                rad =  5.0 * (float) i / numR;
+                g_texcoords[p] = trimesh::vec2(rad * cos(theta), rad * sin(theta));
+            }
         }
-    }
     ground_vertexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     ground_vertexBuffer.bind();
     ground_vertexBuffer.allocate(g_vertices, g_numPoints * sizeof(trimesh::point));
@@ -959,6 +963,43 @@ void glShaderWindow::bindSceneToProgram()
     ground_program->release();
     ground_vao.release();
 }
+
+void glShaderWindow::drawSphere(int numR, int numTh)
+{
+    trimesh::point color = trimesh::point(1.,1.,1.);
+    std::array<trimesh::point,3> vTriangles;
+    trimesh::point center = modelMesh->bsphere.center;
+    double curr_theta, curr_phi, next_theta, next_phi, sRadius;
+    for (int i = 0; i < numR; i++) {
+        for (int j = 0; j < numTh; j++) {
+            curr_theta = i*(2.0*M_PI/(double)numR);
+            curr_phi = j*(M_PI/(double)numTh);
+            next_theta = (i+1)*(2.0*M_PI/(double)numR);
+            next_phi = (j+1)*(M_PI/(double)numTh);
+            sRadius = 100.f;
+            vTriangles[0] = center + trimesh::point(QVector3D(sRadius*cos(curr_theta)*sin(curr_phi), sRadius*sin(curr_theta)*sin(curr_phi), sRadius*cos(curr_phi)));
+            vTriangles[1] = center + trimesh::point(QVector3D(sRadius*cos(next_theta)*sin(curr_phi), sRadius*sin(next_theta)*sin(curr_phi), sRadius*cos(curr_phi)));
+            vTriangles[2] = center + trimesh::point(QVector3D(sRadius*cos(next_theta)*sin(next_phi), sRadius*sin(next_theta)*sin(next_phi), sRadius*cos(next_phi)));
+            g_vertices[i*numR*6 + 6*j +0] = vTriangles[0];
+            g_vertices[i*numR*6 + 6*j +1] = vTriangles[1];
+            g_vertices[i*numR*6 + 6*j +2] = vTriangles[2];
+            g_normals[i*numR*6 + 6*j +0] = trimesh::point(QVector3D(cos(curr_theta)*sin(curr_phi), sin(curr_theta)*sin(curr_phi), cos(curr_phi)));
+            g_normals[i*numR*6 + 6*j +1] = trimesh::point(QVector3D(cos(next_theta)*sin(curr_phi), sin(next_theta)*sin(curr_phi), cos(curr_phi)));
+            g_normals[i*numR*6 + 6*j +2] = trimesh::point(QVector3D(cos(next_theta)*sin(next_phi), sin(next_theta)*sin(next_phi), cos(next_phi)));
+            vTriangles[0] = center + trimesh::point(QVector3D(sRadius*cos(curr_theta)*sin(curr_phi), sRadius*sin(curr_theta)*sin(curr_phi), sRadius*cos(curr_phi)));
+            vTriangles[1] = center + trimesh::point(QVector3D(sRadius*cos(next_theta)*sin(next_phi), sRadius*sin(next_theta)*sin(next_phi), sRadius*cos(next_phi)));
+            vTriangles[2] = center + trimesh::point(QVector3D(sRadius*cos(curr_theta)*sin(next_phi), sRadius*sin(curr_theta)*sin(next_phi), sRadius*cos(next_phi)));
+            g_vertices[i*numR*6 + 6*j +3] = vTriangles[0];
+            g_vertices[i*numR*6 + 6*j +4] = vTriangles[1];
+            g_vertices[i*numR*6 + 6*j +5] = vTriangles[2];
+            g_normals[i*numR*6 + 6*j +3] = trimesh::point(QVector3D(cos(curr_theta)*sin(curr_phi), sin(curr_theta)*sin(curr_phi), cos(curr_phi)));
+            g_normals[i*numR*6 + 6*j +4] = trimesh::point(QVector3D(cos(next_theta)*sin(next_phi), sin(next_theta)*sin(next_phi), cos(next_phi)));
+            g_normals[i*numR*6 + 6*j +5] = trimesh::point(QVector3D(cos(curr_theta)*sin(next_phi), sin(curr_theta)*sin(next_phi), cos(next_phi)));
+            for (int k=0; k<6; k++) g_colors[i*numR*6 + 6*j +k] = color;
+        }
+    }
+}
+
 void glShaderWindow::initializeTransformForScene()
 {
     // Set standard transformation and light source
@@ -1387,6 +1428,9 @@ void glShaderWindow::timerEvent(QTimerEvent *e)
 
 void glShaderWindow::render()
 {
+    //if (showSphere)
+    //    drawSphere(20,40);
+
     QOpenGLTexture* sm = 0;
     m_program->bind();
     QVector3D center = QVector3D(modelMesh->bsphere.center[0],
@@ -1492,7 +1536,6 @@ void glShaderWindow::render()
     m_program->setUniformValue("noiseJade", noiseJade);
     m_program->setUniformValue("noiseWood", noiseWood);
     m_program->setUniformValue("transparent", transparent);
-    m_program->setUniformValue("withNoise", withNoise);
     m_program->setUniformValue("lightIntensity", lightIntensity);
     m_program->setUniformValue("shininess", shininess);
     m_program->setUniformValue("eta", eta);

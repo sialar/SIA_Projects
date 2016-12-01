@@ -50,8 +50,6 @@ public slots:
     void noiseJadeClicked();
     void noiseWoodClicked();
     void noiseNormalClicked();
-    void withNoiseClicked();
-    void fromTextureClicked();
     void cartesianCooClicked();
     void sphericalCooClicked();
     void opaqueClicked();
@@ -59,6 +57,8 @@ public slots:
     void VSMClicked();
     void PCFClicked();
     void ESMClicked();
+    //void showSphereClicked();
+    //void hideSphereClicked();
     void updateLightIntensity(int lightSliderValue);
     void updateShininess(int shininessSliderValue);
     void updateEta(int etaSliderValue);
@@ -68,7 +68,6 @@ public slots:
     void updateLightSize(int lightSizeSliderValue);
     void updateMaxFilterSize(int maxFilterSizeSliderValue);
     void updateBiasCoeff(int biasCoeffSliderValue);
-
 
 protected:
     void mousePressEvent(QMouseEvent *e);
@@ -82,6 +81,8 @@ protected:
 private:
     QOpenGLShaderProgram* prepareShaderProgram(const QString& vertexShaderPath, const QString& fragmentShaderPath);
     void bindSceneToProgram();
+    void drawSphere(int numR, int numTh);
+
     void initializeTransformForScene();
     void initPermTexture();
     void loadTexturesForShaders();
@@ -116,10 +117,10 @@ private:
     bool sphericalCoo;
     bool cartesianCoo;
     bool noiseNormal;
-    bool withNoise;
     bool PCSS;
     bool VSM;
     bool ESM;
+    bool showSphere;
 
     float eta;
     float roughness;
