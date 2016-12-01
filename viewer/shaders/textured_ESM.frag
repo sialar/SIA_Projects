@@ -8,7 +8,7 @@ uniform float eta;
 uniform float nearPlane;
 uniform sampler2D colorTexture;
 uniform float farPlane;
-
+uniform int ESMCst;
 
 in vec3 eyeVector;
 in vec3 lightVector;
@@ -54,8 +54,6 @@ void main( void )
     float bias = 0.005*tan(acos(dot(N, L)));
     bias = clamp(bias, 0, 0.01);
 
-    float c = 1.f;
-
     float texelSize = 1.0 / textureSize(shadowMap, 0).x;
 
     float depth1;
@@ -64,7 +62,7 @@ void main( void )
     if (lightSpace.w > 0 && lightSpaceScaled.x > 0 && lightSpaceScaled.y > 0 && lightSpaceScaled.z > 0 && lightSpaceScaled.x < 1 && lightSpaceScaled.y < 1 && lightSpaceScaled.z < 1){
             float z = texture2D(shadowMap, vec2(lightSpaceScaled.x, 1.f - lightSpaceScaled.y)).z;
             float d = lightSpaceScaled.z;
-            visibility = min(1.f, exp(c * (z - d)));
+            visibility = min(1.f, exp(ESMCst * (z - d) / 100));
     }
 
     vec4 texColor = texture2D(colorTexture, textCoords);

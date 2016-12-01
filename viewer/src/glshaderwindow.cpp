@@ -26,7 +26,7 @@ glShaderWindow::glShaderWindow(QWindow *parent)
       environmentMap(0), texture(0), normalMap(0), permTexture(0), pixels(0), mouseButton(Qt::NoButton), auxWidget(0),
       blinnPhong(true), transparent(true), gooch(false), toon(false), cookTorrance(false), eta(0), noiseRate(0.5), noisePersistence(0.4),
       roughness(0.3), lightIntensity(1.5f), noiseMarble(false), noiseJade(true), noiseWood(false), withNoise(true),
-      sphericalCoo(false), cartesianCoo(true), noiseNormal(false), PCSS(true), VSM(false), ESM(false), lightSize(1), maxFilterSize(5), biasCoeff(10),
+      sphericalCoo(false), cartesianCoo(true), noiseNormal(false), PCSS(true), VSM(false), ESM(false), lightSize(1), maxFilterSize(5), biasCoeff(10), ESMCst(100),
       shininess(50.0f), lightDistance(5.0f), groundDistance(0.78), shadowMap(0), shadowMapDimension(512), fullScreenSnapshots(false),
       m_indexBuffer(QOpenGLBuffer::IndexBuffer), ground_indexBuffer(QOpenGLBuffer::IndexBuffer)
 {
@@ -189,7 +189,7 @@ void glShaderWindow::PCFClicked()
     VSM = false;
     ESM = false;
     //m_program = prepareShaderProgram(":/PCF.vert", ":/PCF.frag");
-    //ground_program = prepareShaderProgram(":/textured_PCF.vert", ":/textured_PCF.frag");
+    ground_program = prepareShaderProgram(":/textured_PCF.vert", ":/textured_PCF.frag");
     setShader("PCF");
     renderNow();
 }
@@ -200,7 +200,7 @@ void glShaderWindow::PCSSClicked()
     VSM = false;
     ESM = false;
     //m_program = prepareShaderProgram(":/PCSS.vert", ":/PCSS.frag");
-    //ground_program = prepareShaderProgram(":/textured_PCSS.vert", ":/textured_PCSS.frag");
+    ground_program = prepareShaderProgram(":/textured_PCSS.vert", ":/textured_PCSS.frag");
     setShader("PCSS");
     renderNow();
 }
@@ -211,7 +211,7 @@ void glShaderWindow::VSMClicked()
     VSM = true;
     ESM = false;
     //m_program = prepareShaderProgram(":/VSM.vert", ":/VSM.frag");
-    //ground_program = prepareShaderProgram(":/textured_VSM.vert", ":/textured_VSM.frag");
+    ground_program = prepareShaderProgram(":/textured_VSM.vert", ":/textured_VSM.frag");
     setShader("VSM");
     renderNow();
 }
@@ -222,7 +222,7 @@ void glShaderWindow::ESMClicked()
     VSM = false;
     ESM = true;
     //m_program = prepareShaderProgram(":/ESM.vert", ":/ESM.frag");
-    //ground_program = prepareShaderProgram(":/textured_ESM.vert", ":/textured_ESM.frag");
+    ground_program = prepareShaderProgram(":/textured_ESM.vert", ":/textured_ESM.frag");
     setShader("ESM");
     renderNow();
 }
@@ -409,6 +409,12 @@ void glShaderWindow::updateMaxFilterSize(int maxFilterSizeSliderValue)
 void glShaderWindow::updateBiasCoeff(int biasCoeffSliderValue)
 {
     biasCoeff = biasCoeffSliderValue;
+    renderNow();
+}
+
+void glShaderWindow::updateESMCst(int ESMCstSliderValue)
+{
+    ESMCst = ESMCstSliderValue;
     renderNow();
 }
 
@@ -788,6 +794,24 @@ void glShaderWindow::showAuxWindow()
     hboxBiasCoeff->addWidget(biasCoeffLabelValue);
     outer->addLayout(hboxBiasCoeff);
     outer->addWidget(biasCoeffSlider);
+
+    // ESM constant slider
+    QSlider* ESMCstSlider = new QSlider(Qt::Horizontal);
+    ESMCstSlider->setTickPosition(QSlider::TicksBelow);
+    ESMCstSlider->setTickInterval(1);
+    ESMCstSlider->setMinimum(1);
+    ESMCstSlider->setMaximum(100);
+    ESMCstSlider->setSliderPosition(ESMCst);
+    connect(ESMCstSlider,SIGNAL(valueChanged(int)),this,SLOT(updateESMCst(int)));
+    QLabel* ESMCstLabel = new QLabel("ESM coefficient for exponential (*100) : ");
+    QLabel* ESMCstLabelValue = new QLabel();
+    ESMCstLabelValue->setNum(ESMCst);
+    connect(ESMCstSlider,SIGNAL(valueChanged(int)),ESMCstLabelValue,SLOT(setNum(int)));
+    QHBoxLayout *hboxESMCst= new QHBoxLayout;
+    hboxESMCst->addWidget(ESMCstLabel);
+    hboxESMCst->addWidget(ESMCstLabelValue);
+    outer->addLayout(hboxESMCst);
+    outer->addWidget(ESMCstSlider);
 
     auxWidget->setLayout(outer);
     auxWidget->show();
@@ -1501,6 +1525,7 @@ void glShaderWindow::render()
     m_program->setUniformValue("lightSize", lightSize);
     m_program->setUniformValue("maxFilterSize", maxFilterSize);
     m_program->setUniformValue("biasCoeff", biasCoeff);
+    m_program->setUniformValue("ESMCst", ESMCst);
     // Shadow Mapping
     if (m_program->uniformLocation("shadowMap") != -1) {
         m_program->setUniformValue("shadowMap", shadowMap->texture());
@@ -1538,6 +1563,7 @@ void glShaderWindow::render()
         ground_program->setUniformValue("lightSize", lightSize);
         ground_program->setUniformValue("maxFilterSize", maxFilterSize);
         ground_program->setUniformValue("biasCoeff", biasCoeff);
+        ground_program->setUniformValue("ESMCst", ESMCst);
         if (ground_program->uniformLocation("colorTexture") != -1) ground_program->setUniformValue("colorTexture", 0);
         if (ground_program->uniformLocation("shadowMap") != -1) {
             ground_program->setUniformValue("shadowMap", shadowMap->texture());
