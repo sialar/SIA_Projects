@@ -1,6 +1,7 @@
 #version 130
 
 uniform float lightIntensity;
+uniform sampler2D normalMap;
 uniform float roughness;
 uniform mat3 normalMatrix;
 uniform float shininess;
@@ -106,6 +107,8 @@ void main( void )
 
     float visibility = 1.0;
 
+    vec4 nothing = texture2D(normalMap,textCoords);
+
     if (blinnPhong)
         fragColor = computeBlinnPhongIllumination(0.3, 0.3, 0.4, NdotL, NdotH, F, visibility);
     else if (cookTorrance)
@@ -116,5 +119,5 @@ void main( void )
         fragColor = computeToonIllumination(NdotL, visibility);
     else
         fragColor = computePhongIllumination(0.3, 0.3, 0.4, NdotL, RdotV, F, visibility);
-
+    fragColor += 0.000001 * nothing;
 }

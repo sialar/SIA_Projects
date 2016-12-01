@@ -58,15 +58,19 @@ THE SOFTWARE.
 uniform sampler2D permTexture;
 uniform float radius; // object size.
 uniform float lightIntensity;
+uniform float roughness;
+uniform float shininess;
+uniform float eta;
 uniform bool blinnPhong;
+uniform bool cookTorrance;
+uniform bool gooch;
+uniform bool toon;
 uniform bool noiseMarble;
 uniform bool noiseJade;
 uniform bool noiseWood;
 uniform bool noiseNormal;
-uniform float shininess;
 uniform float noiseRate;
 uniform float noisePersistence;
-uniform float eta;
 /*
  * Both 2D and 3D texture coordinates are defined, for testing purposes.
  */
@@ -240,33 +244,6 @@ vec3 perlinNoise(in vec3 v) {
     return val;
 }
 
-
-
-
-vec4 computeIllumination(float ka, float kd, float ks, vec4 color, int colorIndex, bool contrast)
-{
-    // Normalize vectors
-    vec3 N = normalize(vertNormal);
-    vec3 L = normalize(lightVector);
-    vec3 V = normalize(eyeVector);
-    vec3 R = normalize(2 * dot(N,L) * N - L);
-
-    // Modèle de Phong
-    vec4 ambiant = ka * color * lightIntensity;
-    vec4 diffuse = kd * color * max( dot(N,L),0 ) * lightIntensity;
-    vec4 phongSpecular = ks * color * pow( max( dot(R,V),0 ), shininess ) * lightIntensity;
-
-    // Modèle de Blinn-Phong
-    vec3 h = normalize(L + V);
-    vec4 blinnPhongSpecular = ks * color * pow( max( dot(N,h),0 ), 4 * shininess) * lightIntensity;
-
-    // Indice de Fresnel
-    float F0 = pow(1-eta,2) / pow(1+eta,2);
-    float F = F0 + (1-F0) * pow( (1- dot(h,V)), 5 );
-    float visibility = (contrast) ? 1 - length(color)/2 : 1;
-    return (ambiant + diffuse + visibility * F * ( (blinnPhong) ? blinnPhongSpecular : phongSpecular));
-}
-
 // Retourne l'indice de la couleur qui correspond à la valeur "value" dans une rampe infinie ayant "step" comme pas.
 int computeColor(int colorsLength, float value, float step)
 {
@@ -279,6 +256,117 @@ int computeColor(int colorsLength, float value, float step)
 vec4 convertColor(float r, float g, float b)
 {
     return vec4(r/255,g/255,b/255,1);
+}
+
+
+vec4 computePhongIllumination(float ka, float kd, float ks, float NdotL, float RdotV, float F, float visibility,vec4 color)
+{
+    vec4 ambiant = ka * color * lightIntensity;
+    vec4 diffuse = kd * color * NdotL * lightIntensity;
+    vec4 specular = ks * color * pow( RdotV, shininess ) * lightIntensity;
+    return ambiant + visibility * (diffuse + F * specular);
+}
+
+vec4 computeBlinnPhongIllumination(float ka, float kd, float ks, float NdotL, float NdotH, float F, float visibility,vec4 color)
+{
+    vec4 ambiant = ka * color * lightIntensity;
+    vec4 diffuse = kd * color * NdotL * lightIntensity;
+    vec4 specular = ks * color * pow( NdotH, 4 * shininess ) * lightIntensity;
+    return ambiant + visibility * (diffuse + F * specular);
+}
+
+vec4 computeCookTorranceIllumination(float NdotH,float NdotV,float VdotH,float NdotL,float F,float k, float visibility,vec4 color)
+{
+    float mSquared = roughness * roughness;
+    mSquared = (mSquared==0.0) ? 0.001 : mSquared;
+    // geometric attenuation
+    float NH2 = 2.0 * NdotH;
+    float g1 = (NH2 * NdotV) / VdotH;
+    float g2 = (NH2 * NdotL) / VdotH;
+    float geoAtt = min(1.0, min(g1, g2));
+    // roughness (or: microfacet distribution function)
+    // beckmann distribution function
+    float r1_b = 1.0 / ( 4.0 * mSquared * pow(NdotH, 4.0));
+    float r2_b = (NdotH * NdotH - 1.0) / (mSquared * NdotH * NdotH);
+    float roughnessValue = r1_b * exp(r2_b);;
+
+    float specular = (F * geoAtt * roughnessValue) / (NdotV * NdotL * 3.141592);
+    return 2 * lightIntensity * color * NdotL * (k + visibility * specular * (1 - k));
+}
+
+vec4 computeGoochIllumination(float NdotL, float u_alpha, float u_beta, float visibility,vec4 color)
+{
+    vec3 u_coolColor = vec3(0,0,1);
+    vec3 u_warmColor = vec3(1,0,0);
+    vec3 diffuse = color.xyz * NdotL * lightIntensity;
+
+    // intensity of diffuse lighting [-1, 1]
+    float diffuseLighting = NdotL;
+    // map intensity of lighting from range [-1; 1] to [0, 1]
+    float interpolationValue = (1.0 + diffuseLighting)/2;
+
+    vec3 coolColorMod = u_coolColor + diffuse * u_alpha;
+    vec3 warmColorMod = u_warmColor + diffuse * u_beta;
+    // interpolation of cool and warm colors according
+    // to lighting intensity. The lower the light intensity,
+    // the larger part of the cool color is used
+    return visibility * vec4(mix(coolColorMod, warmColorMod, interpolationValue),1);
+}
+
+vec4 computeToonIllumination(float NdotL, float visibility, vec4 color)
+{
+    if (NdotL > 0.95)
+        return visibility * lightIntensity * color;
+    else if (NdotL > 0.5)
+        return visibility * lightIntensity * 0.6 * color;
+    else if (NdotL > 0.25)
+        return visibility * lightIntensity * 0.4 * color;
+    else
+        return visibility * lightIntensity * 0.2 * color;
+}
+
+vec4 computeIllumination(float ka, float kd, float ks, vec4 color, bool contrast)
+{
+    vec3 N = normalize(vertNormal);
+    vec3 L = normalize(lightVector);
+    vec3 V = normalize(eyeVector);
+    vec3 R = normalize(2 * dot(N,L) * N - L);
+
+    vec3 halfVector = normalize(L + V);
+    float RdotV = max(dot(R, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotH = max(dot(N, halfVector), 0.0);
+    float NdotV = max(dot(N, V), 0.0);
+    float VdotH = max(dot(V, halfVector), 0.0);
+
+    float F0 = pow(1-eta,2) / pow(1+eta,2);
+    float F = F0 + (1-F0) * pow( (1- VdotH), 5 );
+
+    float visibility = 1;
+
+    if (contrast)
+    {
+        if (length(color)/2<0.4)
+            visibility = 1;
+        else if (length(color)/2<0.5)
+            visibility = 0.75;
+        else if (length(color)/2<0.6)
+            visibility = 0.5;
+        else if (length(color)/2<0.8)
+            visibility = 0.1;
+        else
+            visibility = 0.05;
+    }
+    if (blinnPhong)
+        return computeBlinnPhongIllumination(0.3, 0.3, 0.4, NdotL, NdotH, F, visibility,color);
+    else if (cookTorrance)
+        return computeCookTorranceIllumination(NdotH, NdotV, VdotH, NdotL, F, 0.4, visibility,color);
+    else if (gooch)
+        return computeGoochIllumination(NdotL, 0.25, 0.5, visibility,color);
+    else if (toon)
+        return computeToonIllumination(NdotL, visibility,color);
+    else
+        return computePhongIllumination(0.3, 0.3, 0.4, NdotL, RdotV, F, visibility,color);
 }
 
 void main( void )
@@ -325,16 +413,16 @@ void main( void )
 
     int colorIndex = computeColor(10,noiseValue,0.1);
     if (noiseMarble)
-        fragColor = computeIllumination(0.2,0.2,0.6,marbleColors[colorIndex], colorIndex, false);
+        fragColor = computeIllumination(0.2,0.2,0.6,marbleColors[colorIndex], false);
 
     if (noiseJade)
     {
         colorIndex = computeColor(8,noiseValue,0.1);
-        fragColor = computeIllumination(0.2,0.2,0.6,jadeColors[colorIndex], colorIndex, false);
+        fragColor = computeIllumination(0.2,0.2,0.6,jadeColors[colorIndex], false);
     }
     if (noiseWood)
     {
         colorIndex = computeColor( 10, noiseValue * abs(vertPos.x+0.5*vertPos.y+100)/100, 0.005);
-        fragColor = computeIllumination(0.2,0.2,0.6,woodColors[colorIndex], colorIndex, true);
+        fragColor = computeIllumination(0.2,0.2,0.6,woodColors[colorIndex], true);
     }
 }

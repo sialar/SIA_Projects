@@ -1,6 +1,5 @@
 #version 130
 uniform sampler2D permTexture;
-uniform sampler2D normalMap;
 uniform float radius;
 uniform float shininess;
 uniform float noiseRate;
@@ -135,7 +134,7 @@ vec3 perlinNoise(in vec3 v) {
 
 void main( void )
 {
-    if (noColor) vertColor = vec4(1, 1, 1, 1.0 );
+    if (noColor) vertColor = vec4(1, 1, 1, 1 );
     else vertColor = vec4(color, 1.0);
     vec4 vertPosition = matrix * vec4(vertex, 1.0);
     vec4 eyePosition = vec4(0.0, 0.0, 0.0, 1.0);
@@ -146,13 +145,8 @@ void main( void )
 
     vec3 newPosition;
     // displacement with noise
-    noise = noiseRate * perlinNoise(vertex.xyz/radius).x;
+    noise = 2 * noiseRate * perlinNoise(vertex.xyz/radius).x;
     newPosition = vertex + normal * noise;
-    // displacement mapping
-    if (!withNoise)
-    {
-        vec3 newNormal = texture2D(normalMap, textCoords).xyz;
-        newPosition = vertex + newNormal;
-    }
+//    vertColor = vec4(noise);
     gl_Position = perspective * matrix * vec4(newPosition, 1.0);
 }

@@ -5,6 +5,7 @@ uniform mat4 perspective;
 uniform mat3 normalMatrix;
 uniform bool noColor;
 uniform vec3 lightPosition;
+uniform bool toon;
 
 in vec3 vertex;
 in vec3 normal;
@@ -18,8 +19,8 @@ out vec3 vertPos;
 
 void main( void )
 {
-    if (noColor) vertColor = vec4(0.2, 0.6, 0.7, 1.0 );
-    else vertColor = vec4(color, 1.0);
+    if (toon) vertColor = vec4(1.0, 0.5, 0.5, 1.0 );
+    else vertColor = vec4(1,1,1,1);
     vertPos = vertex;
     vec4 vertPosition = matrix * vec4(vertex, 1.0);
     vec4 eyePosition = vec4(0.0, 0.0, 0.0, 1.0);

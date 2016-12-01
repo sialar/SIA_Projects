@@ -83,5 +83,5 @@ void main( void )
     fragColor = computeIllumination(0.3,0.3,0.4,texColor,ns_globalspace);
 
     // For normal mapping
-    fragColor = computeIllumination(0.3,0.3,0.5,vec4(1),ns_globalspace) + 0.01 * texColor;
+    fragColor = computeIllumination(0.3,0.3,0.5,vec4(1),ns) + 0.01 * texColor;
 }

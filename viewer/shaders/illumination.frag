@@ -73,13 +73,13 @@ vec4 computeGoochIllumination(float NdotL, float u_alpha, float u_beta, float vi
 vec4 computeToonIllumination(float NdotL, float visibility)
 {
     if (NdotL > 0.95)
-        return visibility * lightIntensity * vec4(1.0,0.5,0.5,1.0);
+        return visibility * lightIntensity * vertColor;
     else if (NdotL > 0.5)
-        return visibility * lightIntensity * vec4(0.6,0.3,0.3,1.0);
+        return visibility * lightIntensity * 0.6 * vertColor;
     else if (NdotL > 0.25)
-        return visibility * lightIntensity * vec4(0.4,0.2,0.2,1.0);
+        return visibility * lightIntensity * 0.4 * vertColor;
     else
-        return visibility * lightIntensity * vec4(0.2,0.1,0.1,1.0);
+        return visibility * lightIntensity * 0.2 * vertColor;
 }
 
 void main( void )
@@ -111,5 +111,4 @@ void main( void )
         fragColor = computeToonIllumination(NdotL, visibility);
     else
         fragColor = computePhongIllumination(0.3, 0.3, 0.4, NdotL, RdotV, F, visibility);
-
 }
