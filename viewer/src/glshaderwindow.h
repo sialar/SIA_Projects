@@ -68,6 +68,7 @@ public slots:
     void updateLightSize(int lightSizeSliderValue);
     void updateMaxFilterSize(int maxFilterSizeSliderValue);
     void updateBiasCoeff(int biasCoeffSliderValue);
+    void updateESMCst(int ESMCstSliderValue);
 
 protected:
     void mousePressEvent(QMouseEvent *e);
@@ -133,6 +134,8 @@ private:
     int lightSize;
     int maxFilterSize;
     int biasCoeff;
+    int ESMCst;
+
 
     // OpenGL variables encapsulated by Qt
     QOpenGLShaderProgram *m_program;
