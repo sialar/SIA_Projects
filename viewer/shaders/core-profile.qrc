@@ -34,7 +34,7 @@
         <file>textured_PCSS.vert</file>
         <file>textured_VSM.frag</file>
         <file>textured_VSM.vert</file>
-        <file>displacementMap.frag</file>
-        <file>displacementMap.vert</file>
+        <file>noiseDisplacement.frag</file>
+        <file>noiseDisplacement.vert</file>
     </qresource>
 </RCC>
