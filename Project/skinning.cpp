@@ -121,7 +121,7 @@ void Skinning::computeRigidWeights() {
 	for (int i = 0; i < _nbVtx; i++)
 	{
 		int min_index = 0;
-		float min_dist = glm::distance(_posBonesInit[0], _pointsInit[0]);
+		float min_dist = glm::distance(_posBonesInit[0], _pointsInit[i]);
 		for (int j = 1; j < _nbJoints; j++)
 		{
 			_weights[i][j] = 0;
@@ -243,7 +243,25 @@ void Skinning::paintWeights(std::string jointName) {
 	while (jointIndex < _nbJoints && _joints[jointIndex]->_name.compare(jointName))
 		jointIndex++;
 	//cout << jointIndex << ": " << jointName << endl;
-	int nb = 0;
+	float xmax = 0, xmin = 0, ymax = 0, ymin = 0, zmax = 0, zmin = 0;
+	for (int i = 0; i < _nbVtx; i++) {
+		if (_weights[i][jointIndex] == 1) {
+			xmax = max(xmax, _pointsInit[i].x);
+			ymax = max(ymax, _pointsInit[i].y);
+			zmax = max(zmax, _pointsInit[i].z);
+			xmin = min(xmin, _pointsInit[i].x);
+			ymin = min(ymin, _pointsInit[i].y);
+			zmin = min(zmin, _pointsInit[i].z);
+		}
+	}
+	/*cout << "xmax = " << xmax << endl;
+	cout << "ymax = " << ymax << endl;
+	cout << "zmax = " << zmax << endl;
+	cout << "xmin = " << xmin << endl;
+	cout << "ymin = " << ymin << endl;
+	cout << "zmin = " << zmin << endl;
+	cout << _posBonesInit[jointIndex].x << " " << _posBonesInit[jointIndex].y << " " << _posBonesInit[jointIndex].z << endl;
+	int nb = 0;*/
 	_skin->_colors.resize(_skin->_points.size());
 
 	for (int i = 0; i < _nbVtx; i++)

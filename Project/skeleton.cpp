@@ -237,7 +237,8 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 				// Ajout à l'index
 				joint_index[new_joint->_name] = new_joint;
 
-
+				//new_joint = joint;
+				is_site = true;
 				continue;
 			}
 			// L'informations de position décalée ou à la fin de l'articulation
