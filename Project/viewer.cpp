@@ -215,7 +215,7 @@ void Viewer::init()
 
   // Load skeleton :
   _root = NULL;
-  _root = Skeleton::createFromFile("data/walk.bvh");
+  _root = Skeleton::createFromFile("data/run.bvh");
   if (_root) {
 	  if (_root->_dofs.size())
 		  _nframes = _root->_dofs[0]._values.size();
@@ -237,7 +237,7 @@ void Viewer::init()
   _skinning->_skin = _human;
   _skinning->_skel = _root;
   _skinning->init();
-  _skinning->paintWeights(jointNameCol);
+  //_skinning->paintWeights(jointNameCol);
 
 #if _SKINNING_GPU
   glewInit();
