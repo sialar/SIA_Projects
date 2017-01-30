@@ -224,8 +224,20 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 			// L'information de fin
 			if (!token.compare("End"))
 			{
-				new_joint = joint;
-				is_site = true;
+				new_joint = new Skeleton();
+				new_joint->_index = joints.size();
+				new_joint->_parent = joint;
+				new_joint->_offX = 0.0;  new_joint->_offY = 0.0;  new_joint->_offZ = 0.0;
+				joints.push_back(new_joint);
+				if (joint)
+					joint->_children.push_back(new_joint);
+
+				file >> token;
+				new_joint->_name = token;
+				// Ajout à l'index
+				joint_index[new_joint->_name] = new_joint;
+
+
 				continue;
 			}
 			// L'informations de position décalée ou à la fin de l'articulation

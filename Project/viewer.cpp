@@ -3,7 +3,7 @@
 
 using namespace std;
 
-std::string jointNameCol = "lhumerus";
+std::string jointNameCol = "ltibia";
 
 #if _SKINNING_GPU
 #define BUFFER_OFFSET(a) ((char*)NULL + (a))
@@ -215,7 +215,7 @@ void Viewer::init()
 
   // Load skeleton :
   _root = NULL;
-  _root = Skeleton::createFromFile("data/run.bvh");
+  _root = Skeleton::createFromFile("data/walk.bvh");
   if (_root) {
 	  if (_root->_dofs.size())
 		  _nframes = _root->_dofs[0]._values.size();
@@ -237,7 +237,7 @@ void Viewer::init()
   _skinning->_skin = _human;
   _skinning->_skel = _root;
   _skinning->init();
-  //_skinning->paintWeights(jointNameCol);
+  _skinning->paintWeights(jointNameCol);
 
 #if _SKINNING_GPU
   glewInit();
@@ -336,10 +336,10 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 			break;
 		case Qt::Key_W :		// Modify computation of weights for skinning
 			if (!_skinning) return;
-			_skinning->_meth = (_skinning->_meth + 1) % 2;
+			_skinning->_meth = (_skinning->_meth + 1) % _skinning->_nbMeth;
 			_skinning->recomputeWeights();
-			//if (_skinning->_skin->_colors.size())
-				//_skinning->paintWeights(jointNameCol);
+			if (_skinning->_skin->_colors.size())
+				_skinning->paintWeights(jointNameCol);
 			updateGL();
 			break;
 		case Qt::Key_Escape :	// quit
@@ -350,7 +350,8 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 			saveStateToFile();
 			exit(1);
 			break;
-		case Qt::Key_S:		
+		case Qt::Key_S:	
+			if (!_skinning) return;
 			_skinning->_keepAppling = !_skinning->_keepAppling;
 			_skinning->_skin->_keep_drawing = !_skinning->_skin->_keep_drawing;
 			break;

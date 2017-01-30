@@ -30,13 +30,14 @@ public :
 	std::vector<glm::mat4> _transfoCurr;			// current global transformation of bones
 
 	int _meth;	//method to compute weights 1 : computeWeights(), 0 : load from Maya
-	
+	int _nbMeth;
 public :
 	Skinning() {
 		_skin = NULL;
 		_skel = NULL;
 		_nbJoints = 0;
 		_meth = 1;
+		_nbMeth = 3;
 		_keepAppling = true;
 	}
 	~Skinning() {
@@ -53,7 +54,8 @@ public :
 	void computeTransfo(Skeleton *skel, int *idx);
 
 	// build _weights :
-	void computeWeights();					// compute from data
+	void computeRigidWeights();					// compute from data
+	void computeCylindricWeights();				// compute from data
 	void loadWeights(std::string filename);	// load from file extracted from Maya
 	// re-initialize weights :
 	void recomputeWeights();

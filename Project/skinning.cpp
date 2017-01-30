@@ -39,31 +39,7 @@ void Skinning::init() {
 	_posBonesInit.resize(_nbJoints);
 	getBonesPos(_skel, &idx);
 
-	// Compute weights :
-	if (_meth)
-		computeWeights();
-	else 
-		loadWeights("data/skinning.txt");
-
-	// Test skinning :
-	animate();
-}
-
-void Skinning::recomputeWeights() {
-	if (_skin==NULL) return;
-	if (_skel==NULL) return;
-
-	// Compute weights :
-	if (_meth) {
-		cout << "computing weights\n";
-		computeWeights();
-	} else {
-		cout << "loading weights\n";
-		loadWeights("data/skinning.txt");
-	}
-
-	// Test skinning :
-	animate();
+	recomputeWeights();
 }
 
 void Skinning::getJoints(Skeleton *skel) {
@@ -84,6 +60,28 @@ void Skinning::getBonesPos(Skeleton *skel, int *idx) {
 	_posBonesInit[i0] = glm::vec4(pos.x, pos.y, pos.z, 1.0);
 }
 
+void Skinning::recomputeWeights() {
+	if (_skin == NULL) return;
+	if (_skel == NULL) return;
+
+	// Compute weights :
+	if (_meth == 0) {
+		cout << "loading weights\n";
+		loadWeights("data/skinning.txt");
+	}
+	else if (_meth == 1) {
+		cout << "computing weights (skinning rigid)\n";
+		computeRigidWeights();
+	}
+	else if (_meth == 2) {
+		cout << "computing weights (cylindric distance)\n";
+		computeCylindricWeights();
+	}
+
+	// Test skinning :
+	animate();
+}
+
 void Skinning::computeTransfo(Skeleton *skel, int *idx) {
 	int i0 = (*idx);
 	glPushMatrix();
@@ -95,13 +93,13 @@ void Skinning::computeTransfo(Skeleton *skel, int *idx) {
 		float ptr[16];
 		glGetFloatv(GL_MODELVIEW_MATRIX, ptr);
 		int i = 0;
-		for (int j = 0 ; j < 4 ; j++) {
-			for (int k = 0 ; k < 4 ; k++) {
+		for (int j = 0; j < 4; j++) {
+			for (int k = 0; k < 4; k++) {
 				_transfoCurr[(*idx)][k][j] = ptr[i];
 				i++;
 			}
 		}
-		for (unsigned int ichild = 0 ; ichild < skel->_children.size() ; ichild++) {
+		for (unsigned int ichild = 0; ichild < skel->_children.size(); ichild++) {
 			(*idx)++;
 			computeTransfo(skel->_children[ichild], idx);
 		}
@@ -111,7 +109,7 @@ void Skinning::computeTransfo(Skeleton *skel, int *idx) {
 }
 
 
-void Skinning::computeWeights() {
+void Skinning::computeRigidWeights() {
 	if (_skin == NULL) return;
 	if (_skel == NULL) return;
 	// weights[i][j] = influence of j-th joint on i-th vertex
@@ -131,6 +129,69 @@ void Skinning::computeWeights() {
 			{
 				min_index = j;
 				min_dist = glm::distance(_posBonesInit[j], _pointsInit[i]);
+			}
+		}
+		_weights[i][min_index] = 1;
+	}
+}
+
+glm::vec3 toVec3(glm::vec4 v) {
+	return glm::vec3(v.x, v.y, v.z);
+}
+
+double cylindricDistance(glm::vec4 c, glm::vec3 ab, glm::vec4 v) {
+	// offset = vector ab
+	// center = center of ab
+	glm::vec3 center = toVec3(c);
+	glm::vec3 vertex = toVec3(v);
+	glm::vec3 halfAB(ab);
+	halfAB /= 2;
+	glm::vec3 a, b, i; // points
+	a = center + ab;
+	b = center - ab;
+	glm::vec3 u1, u2; // vectors
+	u1 = vertex - a;
+	u2 = ab;
+
+	double sqrU2Norm = pow(glm::length(u2), 2);
+	if (sqrU2Norm) {
+		double p = glm::dot(u1, u2) / sqrU2Norm;
+		u2 *= p;
+		i = (p < 0) ? a : ((p > 1) ? b : a + u2);
+	}
+	else {
+		i = b;
+	}
+	return glm::length(vertex - i);
+}
+
+void Skinning::computeCylindricWeights() {
+	if (_skin == NULL) return;
+	if (_skel == NULL) return;
+	// weights[i][j] = influence of j-th joint on i-th vertex
+
+	_weights.resize(_nbVtx);
+	for (int i = 0; i < _nbVtx; i++)
+		_weights[i].resize(_nbJoints);
+
+	for (int i = 0; i < _nbVtx; i++)
+	{
+		int min_index = 0;
+		double new_dist;
+		glm::vec3 offset(_joints[1]->_offX, _joints[1]->_offY, _joints[1]->_offZ);
+		float min_dist = cylindricDistance(_posBonesInit[0], offset, _pointsInit[0]);
+		//float min_dist1 = glm::distance(_posBonesInit[0], _pointsInit[0]);
+		for (int j = 1; j < _nbJoints + 1; j++)
+		{
+			_weights[i][j] = 0;
+			offset = glm::vec3(_joints[j - 1]->_offX, _joints[j - 1]->_offY, _joints[j - 1]->_offZ);
+			new_dist = cylindricDistance(_posBonesInit[j], offset, _pointsInit[i]);
+			//min_dist1 = glm::distance(_posBonesInit[j], _pointsInit[i]);
+			//cout << new_dist << " " << min_dist1 << endl;
+			if (new_dist < min_dist)
+			{
+				min_index = j;
+				min_dist = new_dist;
 			}
 		}
 		_weights[i][min_index] = 1;
@@ -158,7 +219,7 @@ void Skinning::loadWeights(std::string filename) {
 			iJt = 0;
 			float x;
 			pch = strtok_s(line," ", &next_token);
-			while (pch != NULL && iJt<_nbJoints) {
+			while (pch != NULL) {
 				// for each number i.e. for each joint :
 				if (pch[0]=='\n'){
 				} else {
