@@ -216,12 +216,17 @@ void Skinning::computeCylindricWeights() {
 				}
 			}
 		}
-		//calculer les poids de skinning
+		// calculer les poids de skinning
+		// TODO : les problèmes sont dans ce calcul a priori (là j'ai mis les poids à 0 et 1 pour voir quelles articulations on a sélectionnées)
+		// index1 et index2 sont les index des 2 articulations sélectionnées
+		// et poisition1 et position2 sont les positions initiales des articulations 
 		glm::vec3 position1(2 * _posBonesInit[i].x - position2.x, 2 * _posBonesInit[i].y - position2.y, 2 * _posBonesInit[i].z - position2.z);
 		glm::vec3 temp = (glm::dot(glm::vec3(_pointsInit[i].x, _pointsInit[i].y, _pointsInit[i].z), position1 - position2) / glm::distance(position1, position2))*(position1 - position2) - position2;
-		_weights[i][index1] = glm::distance(temp, glm::vec3(0, 0, 0)) / glm::distance(position1, position2);
+		//_weights[i][index1] = glm::distance(temp, glm::vec3(0, 0, 0)) / glm::distance(position1, position2);
 		temp = (glm::dot(glm::vec3(_pointsInit[i].x, _pointsInit[i].y, _pointsInit[i].z), position2 - position1) / glm::distance(position2, position1))*(position2 - position1) - position1;
-		_weights[i][index2] = glm::distance(temp, glm::vec3(0, 0, 0)) / glm::distance(position2, position1);
+		//_weights[i][index2] = glm::distance(temp, glm::vec3(0, 0, 0)) / glm::distance(position2, position1);
+		_weights[i][index1] = 0;
+		_weights[i][index2] = 1;
 		if (_weights[i][index2] + _weights[i][index1] - 1 > 0.0001)
 			cout << "problème dans les coordonnées cyl " << _weights[i][index2] + _weights[i][index1] << endl;
 	}
