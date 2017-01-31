@@ -37,7 +37,7 @@ public :
 		_skel = NULL;
 		_nbJoints = 0;
 		_meth = 1;
-		_nbMeth = 2;
+		_nbMeth = 3;
 		_keepAppling = true;
 	}
 	~Skinning() {
