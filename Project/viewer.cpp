@@ -215,7 +215,7 @@ void Viewer::init()
 
   // Load skeleton :
   _root = NULL;
-  _root = Skeleton::createFromFile("data/run.bvh");
+  _root = Skeleton::createFromFile("data/walk.bvh");
   if (_root) {
 	  if (_root->_dofs.size())
 		  _nframes = _root->_dofs[0]._values.size();

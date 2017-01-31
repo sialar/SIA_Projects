@@ -460,7 +460,7 @@ int Skeleton::computeNbDofs(double threshold)
 	double crossProdMod = 0;
 	glm::vec3 lastNVaa;
 	glm::vec3 curNVaa = glm::normalize(rotationAxis[0]);
-	int i = 1;
+	uint i = 1;
 	while ( i < rotationAxis.size() && crossProdMod < threshold)
 	{	
 		lastNVaa = curNVaa;
@@ -475,7 +475,6 @@ int Skeleton::computeNbDofs(double threshold)
 
 	// Sinon nbDofs = 2 ou 3
 	i = 1;
-	bool res;
 	glm::vec3 nextNVaa;
 	curNVaa = glm::normalize(rotationAxis[0]);
 	while (i < rotationAxis.size()-1)
