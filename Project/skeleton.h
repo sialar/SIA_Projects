@@ -42,14 +42,14 @@ public:
 	double _curRx;						// current value of rotation about X (deg)
 	double _curRy;						// current value of rotation about Y (deg)
 	double _curRz;						// current value of rotation about Z (deg)
-	std::vector<glm::vec3> axisAngles;
+	std::vector<glm::vec3> rotationAxis;
+	std::vector<glm::vec3> eulerAngles;
 	int _rorder = roYXZ;				// order of euler angles to reconstruct rotation
 	std::vector<Skeleton*> _children;	// children of the current joint
 
 	Skeleton* _parent;
 	int _index;
-	bool has_site;
-	double _siteX, _siteY, _siteZ;
+
 
 public:
 	// Constructor :
@@ -106,7 +106,9 @@ public:
 	static void displayMat3(glm::mat3 m);
 	static glm::vec3 maxDistance(std::vector<glm::vec3>& vector);
 	static glm::mat3 toMat3(glm::mat4 m);
-	glm::vec3 Skeleton::rotationIsConstant(double threshold);
+	glm::vec3 rotationIsConstant(double threshold);
+	int computeNbDofs(double threshold);
+	bool inTheSamePlane(double threshold);
 	void computeAxisAngles();
 };
 

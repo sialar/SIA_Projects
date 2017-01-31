@@ -170,7 +170,7 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 	bool                    is_load_success;
 	string                  motion_name;
 	vector<Skeleton*>       joints;
-	map<string, Skeleton*>   joint_index;
+	map<string, Skeleton*>  joint_index;
 	int                     num_frame;
 	double                  interval;
 
@@ -178,8 +178,6 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 	vector<Skeleton*>		joint_stack;
 	Skeleton*				joint = NULL;
 	Skeleton*				new_joint = NULL;
-	bool					is_site = false;
-	double					x, y, z;
 
 	cout << "Loading from " << fileName << endl;
 	ifstream file(fileName.data());
@@ -200,30 +198,9 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 			if (!token.compare("}")) {
 				joint = joint_stack.back();
 				joint_stack.pop_back();
-				is_site = false;
 				continue;
 			}
-
-			if (!token.compare("ROOT") || !token.compare("JOINT")) {
-				new_joint = new Skeleton();
-				new_joint->_index = joints.size();
-				new_joint->_parent = joint;
-				new_joint->has_site = false;
-				new_joint->_offX = 0.0;  new_joint->_offY = 0.0;  new_joint->_offZ = 0.0;
-				new_joint->_siteX = 0.0;  new_joint->_siteY = 0.0;  new_joint->_siteZ = 0.0;
-				joints.push_back(new_joint);
-				if (joint)
-					joint->_children.push_back(new_joint);
-
-				file >> token;
-				new_joint->_name = token;
-				// Ajout à l'index
-				joint_index[new_joint->_name] = new_joint;
-				continue;
-			}
-			// L'information de fin
-			if (!token.compare("End"))
-			{
+			if (!token.compare("ROOT") || !token.compare("JOINT") || !token.compare("End")) {
 				new_joint = new Skeleton();
 				new_joint->_index = joints.size();
 				new_joint->_parent = joint;
@@ -234,38 +211,19 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 
 				file >> token;
 				new_joint->_name = token;
-				// Ajout à l'index
 				joint_index[new_joint->_name] = new_joint;
-
-				//new_joint = joint;
-				is_site = true;
 				continue;
 			}
-			// L'informations de position décalée ou à la fin de l'articulation
 			if (!token.compare("OFFSET"))
 			{
 				file >> token;
-				x = stof(token);
+				joint->_offX = stof(token);
 				file >> token;
-				y = stof(token);
+				joint->_offY = stof(token);
 				file >> token;
-				z = stof(token);
-				if (is_site)
-				{
-					joint->has_site = true;
-					joint->_siteX = x;
-					joint->_siteY = y;
-					joint->_siteZ = z;
-				}
-				else
-				{
-					joint->_offX = x;
-					joint->_offY = y;
-					joint->_offZ = z;
-				}
+				joint->_offZ = stof(token);
 				continue;
 			}
-			// Informations sur les degres de liberte
 			if (!token.compare("CHANNELS"))
 			{
 				file >> token;
@@ -278,25 +236,20 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 					joint->_dofs.push_back(dof);
 				}
 			}
-
-			// Passer à la section de données Motion
 			if (!token.compare("MOTION"))
 				break;
 		}
-		// Lecture de l'information de mouvement
 		file >> token;
-		if (token.compare("Frames:"))  goto bvh_error;
+		if (token.compare("Frames:"))  file.close();
 		file >> token;
 		num_frame = stoi(token);
-
 		file >> token;
-		if (token.compare("Frame"))  goto bvh_error;
+		if (token.compare("Frame"))  file.close();
 		file >> token;
-		if (token.compare("Time:"))  goto bvh_error;
+		if (token.compare("Time:"))  file.close();
 		file >> token;
 		interval = stof(token);
-
-		// Lecture des données de mouvement
+		
 		int k = 0;
 		for (int f = 0; f < num_frame; ++f)
 		{
@@ -313,10 +266,7 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 
 		file.close();
 		is_load_success = true;
-		cout << "file loaded" << endl;
-
-	bvh_error:
-		file.close();
+		cout << "file loaded" << endl;		
 	}
 	else {
 		cerr << "Failed to load the file " << fileName.data() << endl;
@@ -449,13 +399,16 @@ void Skeleton::eulerToAxisAngle(double rx, double ry, double rz, int rorder, qgl
 void Skeleton::nbDofs() {
 	if (_dofs.empty()) return;
 
-	double tol = 1e-4;
+	double tol = 10e-4;
 	int nbDofsR = -1;
 	
 	computeAxisAngles();
+	/*
 	glm::vec3 constRotations = rotationIsConstant(tol);
 	nbDofsR = (int) glm::dot(constRotations, glm::vec3(1.0));
-	//cout << _name << " : " << nbDofsR << " degree(s) of freedom in rotation\n";
+	*/
+	nbDofsR = computeNbDofs(tol);
+	cout << _name << " : " << nbDofsR << endl;// " degree(s) of freedom in rotation\n";
 
 	// Propagate to children :
 	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
@@ -479,18 +432,64 @@ void Skeleton::computeAxisAngles()
 				y = _dofs[j]._values[i];
 			if (!_dofs[j].name.compare("Zrotation"))
 				z = _dofs[j]._values[i];
+			eulerAngles.push_back(glm::vec3(x, y, z));
 		}
 		eulerToAxisAngle(x, y, z, _rorder, &vaa);
-		axisAngles.push_back(glm::vec3(vaa[0], vaa[1], vaa[2]));
+		rotationAxis.push_back(glm::vec3(vaa[0], vaa[1], vaa[2]));
 	}
 }
 glm::vec3 Skeleton::rotationIsConstant(double threshold)
 {
 	glm::vec3 boolRes(0, 0, 0);
-	glm::vec3 dist = maxDistance(axisAngles);
+	glm::vec3 dist = maxDistance(rotationAxis);
 	for (int k = 0; k<3; k++)
 		boolRes[k] = (dist[k] <= threshold) ? 1 : 0;
 	return boolRes;
+}
+bool coplanaire(glm::vec3 lastNVaa, glm::vec3 curNVaa, glm::vec3 nextNVaa, double threshold) {
+	return (glm::dot(lastNVaa, glm::cross(nextNVaa, curNVaa)) < 0.1);
+}
+int Skeleton::computeNbDofs(double threshold)
+{
+	glm::vec3 eulerMaxDist = maxDistance(eulerAngles);
+	// Si les angles d'euler sont constants au cours du temps alors nbDofs = 0
+	// Exemples: hip, rhipjoint, lhipjoint
+	if (glm::length(eulerMaxDist) < threshold)
+		return 0;
+
+	double crossProdMod = 0;
+	glm::vec3 lastNVaa;
+	glm::vec3 curNVaa = glm::normalize(rotationAxis[0]);
+	int i = 1;
+	while ( i < rotationAxis.size() && crossProdMod < threshold)
+	{	
+		lastNVaa = curNVaa;
+		curNVaa = glm::normalize(rotationAxis[i]);
+		crossProdMod = glm::length(glm::cross(curNVaa, lastNVaa));
+		i++;
+	}
+	// Si le produit vectoriel est résté assez faible pour pouvoir considerer les axes de rotaion
+	// colinéaires ( ~ l'axe de rotaion est résté à peu près constant au cours du temps)
+	if (i == rotationAxis.size())
+		return 1;
+
+	// Sinon nbDofs = 2 ou 3
+	i = 1;
+	bool res;
+	glm::vec3 nextNVaa;
+	curNVaa = glm::normalize(rotationAxis[0]);
+	while (i < rotationAxis.size()-1)
+	{
+		lastNVaa = curNVaa;
+		curNVaa = glm::normalize(rotationAxis[i]);
+		nextNVaa = glm::normalize(rotationAxis[i+1]);
+		// Si les axes de rotations ne restent pas dans un même plan alors nbDofs = 3 
+		// A VERIFIER !!
+		if (!coplanaire(lastNVaa, curNVaa, nextNVaa, threshold))
+			return 3;
+		i++;
+	}
+	return 2;
 }
 glm::vec3 Skeleton::maxDistance(std::vector<glm::vec3>& vector)
 {
