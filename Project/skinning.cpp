@@ -189,13 +189,8 @@ void Skinning::computeCylindricWeights() {
 			}
 		}
 		//get children of the joint
-		vector<Skeleton*> children_min;
-		for (vector<Skeleton*>::iterator s = _joints.begin(); s != _joints.end(); ++s) {
-			if ((*(*s))._index == index1) {
-				children_min = (*(*s))._children;
-				break;
-			}
-		}
+		glm::vec3 position1 = position1 = glm::vec3((*(_joints[index1]))._offX, (*(_joints[index1]))._offY, (*(_joints[index1]))._offZ);
+		vector<Skeleton*> children_min = (*(_joints[index1]))._children;
 		//get their indices
 		bool firstIteration = true;
 		double tempdist;
@@ -220,7 +215,6 @@ void Skinning::computeCylindricWeights() {
 		// TODO : les problèmes sont dans ce calcul a priori (là j'ai mis les poids à 0 et 1 pour voir quelles articulations on a sélectionnées)
 		// index1 et index2 sont les index des 2 articulations sélectionnées
 		// et poisition1 et position2 sont les positions initiales des articulations 
-		glm::vec3 position1(2 * _posBonesInit[i].x - position2.x, 2 * _posBonesInit[i].y - position2.y, 2 * _posBonesInit[i].z - position2.z);
 		glm::vec3 temp = (glm::dot(glm::vec3(_pointsInit[i].x, _pointsInit[i].y, _pointsInit[i].z), position1 - position2) / glm::distance(position1, position2))*(position1 - position2) - position2;
 		//_weights[i][index1] = glm::distance(temp, glm::vec3(0, 0, 0)) / glm::distance(position1, position2);
 		temp = (glm::dot(glm::vec3(_pointsInit[i].x, _pointsInit[i].y, _pointsInit[i].z), position2 - position1) / glm::distance(position2, position1))*(position2 - position1) - position1;
@@ -277,6 +271,7 @@ void Skinning::paintWeights(std::string jointName) {
 	while (jointIndex < _nbJoints && _joints[jointIndex]->_name.compare(jointName))
 		jointIndex++;
 	//cout << jointIndex << ": " << jointName << endl;
+	/*
 	float xmax = 0, xmin = 0, ymax = 0, ymin = 0, zmax = 0, zmin = 0;
 	for (int i = 0; i < _nbVtx; i++) {
 		if (_weights[i][jointIndex] == 1) {
@@ -288,7 +283,7 @@ void Skinning::paintWeights(std::string jointName) {
 			zmin = min(zmin, _pointsInit[i].z);
 		}
 	}
-	/*cout << "xmax = " << xmax << endl;
+	cout << "xmax = " << xmax << endl;
 	cout << "ymax = " << ymax << endl;
 	cout << "zmax = " << zmax << endl;
 	cout << "xmin = " << xmin << endl;
