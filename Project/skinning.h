@@ -37,7 +37,7 @@ public:
 		_skel = NULL;
 		_nbJoints = 0;
 		_meth = 0;
-		_nbMeth = 2;
+		_nbMeth = 3;
 		_keepAppling = true;
 	}
 	~Skinning() {
@@ -56,6 +56,7 @@ public:
 	// build _weights :
 	void computeRigidWeights();					// compute from data
 	void computeCylindricWeights();				// compute from data
+	void computeCylindricWeightsRafik();
 	void loadWeights(std::string filename);	// load from file extracted from Maya
 											// re-initialize weights :
 	void recomputeWeights();
