@@ -10,7 +10,7 @@
 
 class Skinning
 {
-public :
+public:
 	// inputs :
 	Mesh *_skin;			// mesh to animate
 	Skeleton *_skel;		// animation skeleton
@@ -31,12 +31,12 @@ public :
 
 	int _meth;	//method to compute weights 1 : computeWeights(), 0 : load from Maya
 	int _nbMeth;
-public :
+public:
 	Skinning() {
 		_skin = NULL;
 		_skel = NULL;
 		_nbJoints = 0;
-		_meth = 1;
+		_meth = 0;
 		_nbMeth = 3;
 		_keepAppling = true;
 	}
@@ -57,12 +57,12 @@ public :
 	void computeRigidWeights();					// compute from data
 	void computeCylindricWeights();				// compute from data
 	void loadWeights(std::string filename);	// load from file extracted from Maya
-	// re-initialize weights :
+											// re-initialize weights :
 	void recomputeWeights();
 
 	// color the vertices of _skel according to the influence of jointName :
 	void paintWeights(std::string jointName);
-	
+
 	// animation :
 	void animate();
 	// apply skinning to _skel :

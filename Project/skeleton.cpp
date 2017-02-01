@@ -2,9 +2,9 @@
 #include <skeletonIO.h>
 #include <qglviewer.h>
 
-using namespace std;
 
-/********************************   Test functions   ********************************/
+using namespace std;
+int Skeleton::nbJoints = 0;
 
 void Skeleton::testSkeletonCreation(Skeleton* s)
 {
@@ -20,152 +20,6 @@ void Skeleton::testSkeletonCreation(Skeleton* s)
 	if (s->_parent)
 		cout << "The skeleton parent is " << s->_parent->_name << endl;
 }
-glm::mat3 Skeleton::testEulerToMatrixTransform(float rx, float ry, float rz)
-{
-	glm::mat3 res;
-	glm::mat3 ea = toMat3(glm::eulerAngleYXZ(ry, rx, rz));
-	cout << "\nTesting Euler-Matrix transformation with:" << endl;
-	cout << "rx = " << rx << ", " << "ry = " << ry << ", " << "rz = " << rz << endl;
-	displayMat3(ea);
-	cout << "Using glm: " << endl;
-	eulerToMatrix(rx, ry, rz, roYXZ, &res);
-	displayMat3(res);
-	return res;
-}
-qglviewer::Quaternion Skeleton::testMatrixToQuaternionTransform(glm::mat3 m)
-{
-	qglviewer::Quaternion q1, q3;
-	cout << "\nTesting Matrix-Quat transformation:" << endl;
-	matrixToQuaternion(m, &q1);
-	cout << "Axis = (" << q1.axis().x << ", " << q1.axis().y << ", " << q1.axis().z << "). Angle = " << q1.angle() << endl;
-	cout << "Using glm:\n";
-	glm::quat q2 = glm::toQuat(m);
-	cout << "Axis = (" << glm::axis(q2).x << ", " << glm::axis(q2).y << ", " << glm::axis(q2).z << "). Angle = " << glm::angle(q2) << endl;
-	cout << "Using qglViewer:\n";
-	float mat[3][3];
-	for (int i = 0; i < 3; i++)
-		for (int j = 0; j < 3; j++)
-			mat[i][j] = m[i][j];
-	q3.setFromRotationMatrix(mat);
-	cout << "Axis = (" << q3.axis().x << ", " << q3.axis().y << ", " << q3.axis().z << "). Angle = " << q3.angle() << endl;
-	return q1;
-}
-qglviewer::Vec Skeleton::testQuaternionToAxisAngleTransform(qglviewer::Quaternion q)
-{
-	qglviewer::Vec v1, v2;
-	cout << "\nTesting Quat-AxisAngle transformation:" << endl;
-	quaternionToAxisAngle(q, &v1);
-	cout << "Axis = (" << v1.x << ", " << v1.y << ", " << v1.z << endl;
-	cout << "Using qglViewer:\n";
-	v2 = q.axis();
-	cout << "Axis = (" << v2.x << ", " << v2.y << ", " << v2.z << endl;
-	return v1;
-}
-void Skeleton::testTransform()
-{
-	float rx, ry, rz;
-	rx = M_PI / 2;
-	ry = M_PI;
-	rz = 0;
-
-	glm::mat3 m = testEulerToMatrixTransform(rx, ry, rz);
-	qglviewer::Quaternion q = testMatrixToQuaternionTransform(m);
-	qglviewer::Vec v = testQuaternionToAxisAngleTransform(q);
-}
-
-
-/*******************************   Viewer methods   *********************************/
-void drawBone(Skeleton *child)
-{
-	qglviewer::Vec v0(0, 0, 1);
-	qglviewer::Vec v1(child->_offX, child->_offY, child->_offZ);
-	qglviewer::Vec vRot = v0^v1; vRot.normalize();
-	float angle = acosf((v0*v1) / (v0.norm()*v1.norm()))*180.0 / M_PI;
-	float height = (v1 - v0).norm();
-	float radius = 0.1f;
-	glPushMatrix();
-	{
-		glRotatef(angle, vRot.x, vRot.y, vRot.z);
-		gluCylinder(gluNewQuadric(), 0.1, 0.1, height, 5, 5);
-	}
-	glPopMatrix();
-}
-void Skeleton::draw()
-{
-	glPushMatrix();
-	{
-		// Set good reference frame :
-		glTranslatef(_offX, _offY, _offZ);
-		// Use current value of dofs :
-		glTranslatef(_curTx, _curTy, _curTz);
-		rotateSkeleton();
-		// Draw articulation :
-		glColor3f(1, 0, 0),
-			gluSphere(gluNewQuadric(), 0.25, 10, 10);
-		// Draw bone and children :
-		glColor3f(0, 0, 1);
-		for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
-			drawBone(_children[ichild]);
-			_children[ichild]->draw();
-		}
-	}
-	glPopMatrix();
-}
-void Skeleton::rotateSkeleton() {
-	switch (_rorder) {
-	case roXYZ:
-		glRotatef(_curRx, 1, 0, 0);
-		glRotatef(_curRy, 0, 1, 0);
-		glRotatef(_curRz, 0, 0, 1);
-		break;
-	case roYZX:
-		glRotatef(_curRy, 0, 1, 0);
-		glRotatef(_curRz, 0, 0, 1);
-		glRotatef(_curRx, 1, 0, 0);
-		break;
-	case roZXY:
-		glRotatef(_curRz, 0, 0, 1);
-		glRotatef(_curRx, 1, 0, 0);
-		glRotatef(_curRy, 0, 1, 0);
-		break;
-	case roXZY:
-		glRotatef(_curRx, 1, 0, 0);
-		glRotatef(_curRz, 0, 0, 1);
-		glRotatef(_curRy, 0, 1, 0);
-		break;
-	case roYXZ:
-		glRotatef(_curRy, 0, 1, 0);
-		glRotatef(_curRx, 1, 0, 0);
-		glRotatef(_curRz, 0, 0, 1);
-		break;
-	case roZYX:
-		glRotatef(_curRz, 0, 0, 1);
-		glRotatef(_curRy, 0, 1, 0);
-		glRotatef(_curRx, 1, 0, 0);
-		break;
-	}
-}
-void Skeleton::animate(int iframe)
-{
-	// Update dofs :
-	_curTx = 0; _curTy = 0; _curTz = 0;
-	_curRx = 0; _curRy = 0; _curRz = 0;
-	for (unsigned int idof = 0; idof < _dofs.size(); idof++) {
-		if (!_dofs[idof].name.compare("Xposition")) _curTx = _dofs[idof]._values[iframe];
-		if (!_dofs[idof].name.compare("Yposition")) _curTy = _dofs[idof]._values[iframe];
-		if (!_dofs[idof].name.compare("Zposition")) _curTz = _dofs[idof]._values[iframe];
-		if (!_dofs[idof].name.compare("Zrotation")) _curRz = _dofs[idof]._values[iframe];
-		if (!_dofs[idof].name.compare("Yrotation")) _curRy = _dofs[idof]._values[iframe];
-		if (!_dofs[idof].name.compare("Xrotation")) _curRx = _dofs[idof]._values[iframe];
-	}
-	// Animate children :
-	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
-		_children[ichild]->animate(iframe);
-	}
-}
-
-/****************************   Load from file (.bvh)   *****************************/
-
 Skeleton* Skeleton::createFromFile(const string fileName) {
 	bool                    is_load_success;
 	string                  motion_name;
@@ -249,7 +103,7 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 		if (token.compare("Time:"))  file.close();
 		file >> token;
 		interval = stof(token);
-		
+
 		int k = 0;
 		for (int f = 0; f < num_frame; ++f)
 		{
@@ -266,16 +120,116 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 
 		file.close();
 		is_load_success = true;
-		cout << "file loaded" << endl;		
+		cout << "file loaded" << endl;
 	}
 	else {
 		cerr << "Failed to load the file " << fileName.data() << endl;
 		fflush(stdout);
 	}
+	nbJoints = joints.size();
 	return joints[0];
 }
 
-/***********************   Analysis of degrees of freedom   *************************/
+void drawBone(Skeleton *child) 
+{
+	qglviewer::Vec v0(0,0,1);
+	qglviewer::Vec v1(child->_offX, child->_offY, child->_offZ);
+	qglviewer::Vec vRot = v0^v1; vRot.normalize();
+	float angle = acosf((v0*v1)/(v0.norm()*v1.norm()))*180.0/M_PI;
+	float height = (v1-v0).norm();
+	float radius = 0.1f;
+	glPushMatrix();
+	{
+		glRotatef(angle, vRot.x, vRot.y, vRot.z);
+		gluCylinder(gluNewQuadric(), 0.1, 0.1, height, 5, 5);
+	}
+	glPopMatrix();
+	
+}
+
+void Skeleton::rotateSkeleton() {
+	switch (_rorder) {
+		case roXYZ :
+			glRotatef(_curRx, 1, 0, 0);
+			glRotatef(_curRy, 0, 1, 0);
+			glRotatef(_curRz, 0, 0, 1);
+			break;
+		case roYZX :
+			glRotatef(_curRy, 0, 1, 0);
+			glRotatef(_curRz, 0, 0, 1);
+			glRotatef(_curRx, 1, 0, 0);
+			break;
+		case roZXY :
+			glRotatef(_curRz, 0, 0, 1);
+			glRotatef(_curRx, 1, 0, 0);
+			glRotatef(_curRy, 0, 1, 0);
+			break;
+		case roXZY :
+			glRotatef(_curRx, 1, 0, 0);
+			glRotatef(_curRz, 0, 0, 1);
+			glRotatef(_curRy, 0, 1, 0);
+			break;
+		case roYXZ :
+			glRotatef(_curRy, 0, 1, 0);
+			glRotatef(_curRx, 1, 0, 0);
+			glRotatef(_curRz, 0, 0, 1);
+			break;
+		case roZYX :
+			glRotatef(_curRz, 0, 0, 1);
+			glRotatef(_curRy, 0, 1, 0);
+			glRotatef(_curRx, 1, 0, 0);
+			break;
+	}
+}
+void Skeleton::draw() 
+{
+	glPushMatrix();
+	{
+		// Set good reference frame :
+		glTranslatef(_offX, _offY, _offZ);
+		// Use current value of dofs :
+		glTranslatef(_curTx, _curTy, _curTz);
+		rotateSkeleton();
+		// Draw articulation :
+		glColor3f(1,0,0),
+		gluSphere(gluNewQuadric(), 0.25, 10, 10);
+		// Draw bone and children :
+		glColor3f(0,0,1);
+		for (unsigned int ichild = 0 ; ichild < _children.size() ; ichild++) {
+			drawBone(_children[ichild]);
+			_children[ichild]->draw();
+		}
+	}
+	glPopMatrix();
+}
+
+void Skeleton::animate(int iframe) 
+{
+	// Update dofs :
+	_curTx = 0; _curTy = 0; _curTz = 0;
+	_curRx = 0; _curRy = 0; _curRz = 0;
+	for (unsigned int idof = 0 ; idof < _dofs.size() ; idof++) {
+		if(!_dofs[idof].name.compare("Xposition")) _curTx = _dofs[idof]._values[iframe];
+		if(!_dofs[idof].name.compare("Yposition")) _curTy = _dofs[idof]._values[iframe];
+		if(!_dofs[idof].name.compare("Zposition")) _curTz = _dofs[idof]._values[iframe];
+		if(!_dofs[idof].name.compare("Zrotation")) _curRz = _dofs[idof]._values[iframe];
+		if(!_dofs[idof].name.compare("Yrotation")) _curRy = _dofs[idof]._values[iframe];
+		if(!_dofs[idof].name.compare("Xrotation")) _curRx = _dofs[idof]._values[iframe];
+	}	
+	// Animate children :
+	for (unsigned int ichild = 0 ; ichild < _children.size() ; ichild++) {
+		_children[ichild]->animate(iframe);
+	}
+}
+
+glm::mat3 toMat3(glm::mat4 m)
+{
+	glm::mat3 m3;
+	for (int i = 0; i < 3; i++)
+		for (int j = 0; j < 3; j++)
+			m3[i][j] = m[i][j];
+	return m3;
+}
 
 void Skeleton::eulerToMatrix(double rx, double ry, double rz, int rorder, glm::mat3 *R)
 {
@@ -389,34 +343,89 @@ void Skeleton::eulerToAxisAngle(double rx, double ry, double rz, int rorder, qgl
 {
 	// Euler -> matrix :
 	glm::mat3 R;
+	// Using our functions
 	eulerToMatrix(M_PI*rx / 180.0, M_PI*ry / 180.0, M_PI*rz / 180.0, rorder, &R);
 	// matrix -> quaternion :
 	qglviewer::Quaternion q;
 	matrixToQuaternion(R, &q);
 	// quaternion -> axis/angle :
 	quaternionToAxisAngle(q, vaa);
+	/*
+	// Using qglviewer and glm functions
+	glm::mat3 R = toMat3(glm::eulerAngleYXZ((float)ry, (float)rx, (float)rz));
+
+	glm::quat glmQuat = glm::toQuat(R);
+	qglviewer::Quaternion qglviewerQuat;
+	float mat[3][3];
+	for (int i = 0; i < 3; i++)
+		for (int j = 0; j < 3; j++)
+			mat[i][j] = R[i][j];
+	qglviewerQuat.setFromRotationMatrix(mat);
+
+	*vaa = qglviewerQuat.axis();
+	*/
 }
+
 void Skeleton::nbDofs() {
 	if (_dofs.empty()) return;
 
-	double tol = 10e-4;
+	double tol = 0.01;
 	int nbDofsR = -1;
-	
+
 	computeAxisAngles();
-	/*
-	glm::vec3 constRotations = rotationIsConstant(tol);
-	nbDofsR = (int) glm::dot(constRotations, glm::vec3(1.0));
-	*/
+
 	nbDofsR = computeNbDofs(tol);
 	cout << _name << " : " << nbDofsR << endl;// " degree(s) of freedom in rotation\n";
 
-	// Propagate to children :
+											  // Propagate to children :
 	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
 		_children[ichild]->nbDofs();
 	}
 }
 
-/***********************   Intermediate Functions  **********************************/
+int Skeleton::computeNbDofs(double threshold)
+{
+	glm::vec3 eulerMaxDist = maxDistance(eulerAngles);
+	// Si les angles d'euler sont constants au cours du temps alors nbDofs = 0
+	// Exemples: hip, rhipjoint, lhipjoint
+	if (glm::length(eulerMaxDist) < threshold)
+		return 0;
+
+	double crossProdMod = 0;
+	glm::vec3 lastNVaa;
+	glm::vec3 curNVaa = glm::normalize(rotationAxis[0]);
+	uint i = 1;
+	while (i < rotationAxis.size() && crossProdMod < threshold)
+	{
+		lastNVaa = curNVaa;
+		curNVaa = glm::normalize(rotationAxis[i]);
+		crossProdMod = glm::length(glm::cross(curNVaa, lastNVaa));
+		i++;
+	}
+
+	// Si le produit vectoriel est résté assez faible pour pouvoir considerer les axes de rotaion
+	// colinéaires ( ~ l'axe de rotaion est résté à peu près constant au cours du temps)
+	if (i == rotationAxis.size())
+		return 1;
+
+	// Sinon nbDofs = 2 ou 3
+	/*i = 1;
+	glm::vec3 nextNVaa;
+	curNVaa = glm::normalize(rotationAxis[0]);
+	while (i < rotationAxis.size() - 1)
+	{
+		lastNVaa = curNVaa;
+		curNVaa = glm::normalize(rotationAxis[i]);
+		nextNVaa = glm::normalize(rotationAxis[i + 1]);
+		// Si les axes de rotations ne restent pas dans un même plan alors nbDofs = 3 
+		// A VERIFIER !!
+		if (glm::dot(lastNVaa, glm::cross(nextNVaa, curNVaa)) > threshold)
+			return 3;
+		i++;
+	}*/
+	return 2;
+}
+
 
 void Skeleton::computeAxisAngles()
 {
@@ -438,58 +447,7 @@ void Skeleton::computeAxisAngles()
 		rotationAxis.push_back(glm::vec3(vaa[0], vaa[1], vaa[2]));
 	}
 }
-glm::vec3 Skeleton::rotationIsConstant(double threshold)
-{
-	glm::vec3 boolRes(0, 0, 0);
-	glm::vec3 dist = maxDistance(rotationAxis);
-	for (int k = 0; k<3; k++)
-		boolRes[k] = (dist[k] <= threshold) ? 1 : 0;
-	return boolRes;
-}
-bool coplanaire(glm::vec3 lastNVaa, glm::vec3 curNVaa, glm::vec3 nextNVaa, double threshold) {
-	return (glm::dot(lastNVaa, glm::cross(nextNVaa, curNVaa)) < 0.1);
-}
-int Skeleton::computeNbDofs(double threshold)
-{
-	glm::vec3 eulerMaxDist = maxDistance(eulerAngles);
-	// Si les angles d'euler sont constants au cours du temps alors nbDofs = 0
-	// Exemples: hip, rhipjoint, lhipjoint
-	if (glm::length(eulerMaxDist) < threshold)
-		return 0;
 
-	double crossProdMod = 0;
-	glm::vec3 lastNVaa;
-	glm::vec3 curNVaa = glm::normalize(rotationAxis[0]);
-	uint i = 1;
-	while ( i < rotationAxis.size() && crossProdMod < threshold)
-	{	
-		lastNVaa = curNVaa;
-		curNVaa = glm::normalize(rotationAxis[i]);
-		crossProdMod = glm::length(glm::cross(curNVaa, lastNVaa));
-		i++;
-	}
-	// Si le produit vectoriel est résté assez faible pour pouvoir considerer les axes de rotaion
-	// colinéaires ( ~ l'axe de rotaion est résté à peu près constant au cours du temps)
-	if (i == rotationAxis.size())
-		return 1;
-
-	// Sinon nbDofs = 2 ou 3
-	i = 1;
-	glm::vec3 nextNVaa;
-	curNVaa = glm::normalize(rotationAxis[0]);
-	while (i < rotationAxis.size()-1)
-	{
-		lastNVaa = curNVaa;
-		curNVaa = glm::normalize(rotationAxis[i]);
-		nextNVaa = glm::normalize(rotationAxis[i+1]);
-		// Si les axes de rotations ne restent pas dans un même plan alors nbDofs = 3 
-		// A VERIFIER !!
-		if (!coplanaire(lastNVaa, curNVaa, nextNVaa, threshold))
-			return 3;
-		i++;
-	}
-	return 2;
-}
 glm::vec3 Skeleton::maxDistance(std::vector<glm::vec3>& vector)
 {
 	std::vector<float> xVector, yVector, zVector;
@@ -507,21 +465,4 @@ glm::vec3 Skeleton::maxDistance(std::vector<glm::vec3>& vector)
 	dist.y = *max_element(yVector.begin(), yVector.end()) - *min_element(yVector.begin(), yVector.end());
 	dist.z = *max_element(zVector.begin(), zVector.end()) - *min_element(zVector.begin(), zVector.end());
 	return dist;
-}
-void Skeleton::displayMat3(glm::mat3 m)
-{
-	for (int i = 0; i<3; ++i)
-	{
-		for (int j = 0; j<3; ++j)
-			cout << m[i][j] << " ";
-		cout << "\n";
-	}
-}
-glm::mat3 Skeleton::toMat3(glm::mat4 m)
-{
-	glm::mat3 m3;
-	for (int i = 0; i < 3; i++)
-		for (int j = 0; j < 3; j++)
-			m3[i][j] = m[i][j];
-	return m3;
 }
