@@ -42,6 +42,33 @@ void Skinning::init() {
 	recomputeWeights();
 }
 
+void Skinning::recomputeWeights() {
+	if (_skin==NULL) return;
+	if (_skel==NULL) return;
+
+	// Compute weights :
+	switch (_meth)
+	{
+	case 0: 
+		cout << "loading weights\n";
+		loadWeights("data/skinning.txt"); 
+		break;
+	case 1: 
+		cout << "computing weights (skinning rigid)\n";
+		computeRigidWeights(); 
+		break;
+	case 2: 
+		cout << "computing weights (cylindric distance)\n";
+		computeCylindricWeights(); 
+		break;
+	default:
+		break;
+	}
+
+	// Test skinning :
+	animate();
+}
+
 void Skinning::getJoints(Skeleton *skel) {
 	_joints.push_back(skel);
 	for (unsigned int ichild = 0 ; ichild < skel->_children.size() ; ichild++) {
@@ -60,28 +87,6 @@ void Skinning::getBonesPos(Skeleton *skel, int *idx) {
 	_posBonesInit[i0] = glm::vec4(pos.x, pos.y, pos.z, 1.0);
 }
 
-void Skinning::recomputeWeights() {
-	if (_skin == NULL) return;
-	if (_skel == NULL) return;
-
-	// Compute weights :
-	if (_meth == 0) {
-		cout << "loading weights\n";
-		loadWeights("data/skinning.txt");
-	}
-	else if (_meth == 1) {
-		cout << "computing weights (skinning rigid)\n";
-		computeRigidWeights();
-	}
-	else if (_meth == 2) {
-		cout << "computing weights (cylindric distance)\n";
-		computeCylindricWeights();
-	}
-
-	// Test skinning :
-	animate();
-}
-
 void Skinning::computeTransfo(Skeleton *skel, int *idx) {
 	int i0 = (*idx);
 	glPushMatrix();
@@ -92,14 +97,27 @@ void Skinning::computeTransfo(Skeleton *skel, int *idx) {
 
 		float ptr[16];
 		glGetFloatv(GL_MODELVIEW_MATRIX, ptr);
+
+		/*
+		for (int i = 0; i < 16; i++)
+			cout << ptr[i] << " ";
+		cout << endl;
+		*/
+
+		for (int i = 0; i < 16; i++)
+			if (ptr[i] != ptr[i]) {
+				cout << "\nError: nan when calling glGetFloatv" << endl;
+				cout << "Rerun the program" << endl;
+				exit(1);
+			}
 		int i = 0;
-		for (int j = 0; j < 4; j++) {
-			for (int k = 0; k < 4; k++) {
+		for (int j = 0 ; j < 4 ; j++) {
+			for (int k = 0 ; k < 4 ; k++) {
 				_transfoCurr[(*idx)][k][j] = ptr[i];
 				i++;
 			}
 		}
-		for (unsigned int ichild = 0; ichild < skel->_children.size(); ichild++) {
+		for (unsigned int ichild = 0 ; ichild < skel->_children.size() ; ichild++) {
 			(*idx)++;
 			computeTransfo(skel->_children[ichild], idx);
 		}
@@ -110,10 +128,10 @@ void Skinning::computeTransfo(Skeleton *skel, int *idx) {
 
 
 void Skinning::computeRigidWeights() {
-	if (_skin == NULL) return;
-	if (_skel == NULL) return;
-	// weights[i][j] = influence of j-th joint on i-th vertex
+	if (_skin==NULL) return;
+	if (_skel==NULL) return;
 
+	_weights.clear();
 	_weights.resize(_nbVtx);
 	for (int i = 0; i < _nbVtx; i++)
 		_weights[i].resize(_nbJoints);
@@ -134,6 +152,84 @@ void Skinning::computeRigidWeights() {
 		_weights[i][min_index] = 1;
 	}
 }
+
+void Skinning::loadWeights(std::string filename) {
+	_weights.clear();
+	_weights.resize(_nbVtx);
+	for (int i = 0; i < _nbVtx; i++)
+		_weights[i].resize(_nbJoints);
+
+	std::vector<float> bone_indexA;
+	std::vector<float> bone_weightA;
+	FILE *file; fopen_s(&file, filename.data(), "r");
+	if (!file) return;
+	char * pch, *next_token;
+	const int line_size = 600;
+	char line[line_size];
+	int iV = 0;
+	while (!feof(file)) {
+		// for each line i.e. for each vertex :
+		if (fgets(line, line_size, file)) {
+			int iJt = 0;
+			float x;
+			pch = strtok_s(line," ", &next_token);
+			while (pch != NULL) {
+				// for each number i.e. for each joint :
+				if (pch[0]=='\n'){
+				} else {
+					x = (float)atof(pch);
+					_weights[iV][iJt] = x;
+				}
+				pch = strtok_s(NULL, " ", &next_token);
+				iJt++;
+			}
+			iV++;
+		}		
+	}
+	fclose(file);
+}
+
+void Skinning::paintWeights(std::string jointName) {
+	if (_skin==NULL) return;
+	if (_skel==NULL) return;
+	
+	int jointIndex = 0;
+	while (jointIndex < _nbJoints && _joints[jointIndex]->_name.compare(jointName))
+		jointIndex++;
+	_skin->_colors.resize(_skin->_points.size());
+
+	for (int i = 0; i < _nbVtx; i++)
+		_skin->_colors[i].x = _weights[i][jointIndex];
+}
+
+void Skinning::animate() {
+	if (_skin==NULL) return;
+	if (_skel==NULL) return;
+
+	// Animate bones :
+	int idx = 0;
+	glPushMatrix();
+	glLoadIdentity();
+	computeTransfo(_skel, &idx);
+	glPopMatrix();
+
+	// Animate skin :
+#if _SKINNING_GPU
+#else
+	applySkinning();
+#endif
+}
+
+void Skinning::applySkinning() {
+	if (!_keepAppling) return;
+	for (int i = 0; i < _nbVtx; i++) {
+		glm::vec4 newpos(0);
+		for (int j = 0; j < _nbJoints; j++)
+			newpos += _weights[i][j] * _transfoCurr[j] * _transfoInitInv[j] * _pointsInit[i];
+		_skin->_points[i] = newpos;
+	}
+}
+
 
 glm::vec3 toVec3(glm::vec4 v) {
 	return glm::vec3(v.x, v.y, v.z);
@@ -165,10 +261,76 @@ double cylindricDistance(glm::vec4 c, glm::vec3 ab, glm::vec4 v) {
 	return glm::length(vertex - i);
 }
 
+glm::vec3 toVec3(glm::vec4 v) {
+	return glm::vec3(v.x, v.y, v.z);
+}
+
+void Skinning::computeCylindricWeightsRafik() {
+	if (_skin == NULL) return;
+	if (_skel == NULL) return;
+
+	_weights.resize(_nbVtx);
+	for (int i = 0; i < _nbVtx; i++)
+		_weights[i].resize(_nbJoints);
+
+	for (int i = 0; i < _nbVtx; i++)
+	{
+		//get the nearest joint
+		int min_index = 0;
+		float min_dist = glm::distance(_posBonesInit[0], _pointsInit[i]);
+		for (int j = 1; j < _nbJoints; j++)
+		{
+			_weights[i][j] = 0;
+			if (glm::distance(_posBonesInit[j], _pointsInit[i]) < min_dist)
+			{
+				min_index = j;
+				min_dist = glm::distance(_posBonesInit[j], _pointsInit[i]);
+			}
+		}
+		//_weights[i][index1] = 1;}
+		/*Skeleton* targetBone = _joints[min_dist];
+		Skeleton* targetBoneChild = targetBone->_children[0];
+		glm::vec3 targetBonePos = toVec3(_posBonesInit[min_index]);
+		glm::vec3 targetBoneChildPos = toVec3(_posBonesInit[min_index + 1]);
+		glm::vec3 queryTargetBoneChildPos = targetBonePos + glm::vec3(targetBoneChild->_offX, targetBoneChild->_offY, targetBoneChild->_offZ);
+
+		cout << queryTargetBoneChildPos.x << " " << queryTargetBoneChildPos.y << " " << queryTargetBoneChildPos.z << endl;
+		cout << targetBoneChildPos.x << " " << targetBoneChildPos.y << " " << targetBoneChildPos.z << endl << endl;
+		*/
+		Skeleton* targetBone = _joints[min_dist];
+		glm::vec3 u1, u2, halfU2, xA, xB, xI, x, center;
+		x = toVec3(_pointsInit[i]);
+		center = toVec3(_posBonesInit[min_index]);
+		u2 = glm::vec3(targetBone->_offX, targetBone->_offY, targetBone->_offZ);
+		halfU2 = u2;
+		halfU2 /= 2;
+		xA = center - halfU2;
+		xB = center + halfU2;
+		u1 = x - xA;
+
+		if (glm::length(u2)) {
+			double p = glm::dot(u1, u2) / pow(glm::length(u2), 2);
+			if (p < 0) {
+				xI = xA;
+			}
+			else if (p > 1) {
+				xI = xB;
+			}
+			else {
+				u2 *= p;
+				xI = xA + u2;
+				u2 /= p;
+			}
+			_weights[i][min_index] = glm::length(xI - xA) / glm::length(u2);
+		}
+		else
+			_weights[i][min_index] = 1;
+	}
+}
+
 void Skinning::computeCylindricWeights() {
 	if (_skin == NULL) return;
 	if (_skel == NULL) return;
-	// weights[i][j] = influence of j-th joint on i-th vertex
 
 	_weights.resize(_nbVtx);
 	for (int i = 0; i < _nbVtx; i++)
@@ -202,7 +364,8 @@ void Skinning::computeCylindricWeights() {
 				index2 = (**s)._index;
 				position2 = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
 				firstIteration = false;
-			} else {
+			}
+			else {
 				tempdist = sqrt(pow((**s)._offX - _pointsInit[i].x, 2) + pow((**s)._offY - _pointsInit[i].y, 2) + pow((**s)._offZ - _pointsInit[i].z, 2));
 				if (tempdist < min_dist) {
 					min_dist = tempdist;
@@ -223,104 +386,5 @@ void Skinning::computeCylindricWeights() {
 		_weights[i][index2] = 1;
 		if (_weights[i][index2] + _weights[i][index1] - 1 > 0.0001)
 			cout << "problème dans les coordonnées cyl " << _weights[i][index2] + _weights[i][index1] << endl;
-	}
-}
-
-void Skinning::loadWeights(std::string filename) {
-
-	_weights.resize(_nbVtx);
-	for (int i = 0; i < _nbVtx; i++)
-		_weights[i].resize(_nbJoints);
-
-	std::vector<float> bone_indexA;
-	std::vector<float> bone_weightA;
-	FILE *file; fopen_s(&file, filename.data(), "r");
-	if (!file) return;
-	char * pch, *next_token;
-	const int line_size = 600;
-	char line[line_size];
-	int iV = 0, iJt = 0;
-	
-	while (!feof(file)) {
-		// for each line i.e. for each vertex :
-		if (fgets(line, line_size, file)) {
-			iJt = 0;
-			float x;
-			pch = strtok_s(line," ", &next_token);
-			while (pch != NULL) {
-				// for each number i.e. for each joint :
-				if (pch[0]=='\n'){
-				} else {
-					x = (float)atof(pch);
-					_weights[iV][iJt] = x;
-				}
-				pch = strtok_s(NULL, " ", &next_token);
-				iJt++;
-			}
-			iV++;
-		}		
-	}
-	fclose(file);
-}
-
-void Skinning::paintWeights(std::string jointName) {
-	if (_skin==NULL) return;
-	if (_skel==NULL) return;
-
-	int jointIndex = 0;
-	while (jointIndex < _nbJoints && _joints[jointIndex]->_name.compare(jointName))
-		jointIndex++;
-	//cout << jointIndex << ": " << jointName << endl;
-	/*
-	float xmax = 0, xmin = 0, ymax = 0, ymin = 0, zmax = 0, zmin = 0;
-	for (int i = 0; i < _nbVtx; i++) {
-		if (_weights[i][jointIndex] == 1) {
-			xmax = max(xmax, _pointsInit[i].x);
-			ymax = max(ymax, _pointsInit[i].y);
-			zmax = max(zmax, _pointsInit[i].z);
-			xmin = min(xmin, _pointsInit[i].x);
-			ymin = min(ymin, _pointsInit[i].y);
-			zmin = min(zmin, _pointsInit[i].z);
-		}
-	}
-	cout << "xmax = " << xmax << endl;
-	cout << "ymax = " << ymax << endl;
-	cout << "zmax = " << zmax << endl;
-	cout << "xmin = " << xmin << endl;
-	cout << "ymin = " << ymin << endl;
-	cout << "zmin = " << zmin << endl;
-	cout << _posBonesInit[jointIndex].x << " " << _posBonesInit[jointIndex].y << " " << _posBonesInit[jointIndex].z << endl;
-	int nb = 0;*/
-	_skin->_colors.resize(_skin->_points.size());
-
-	for (int i = 0; i < _nbVtx; i++)
-		_skin->_colors[i].x = _weights[i][jointIndex];
-}
-
-void Skinning::animate() {
-	if (_skin==NULL) return;
-	if (_skel==NULL) return;
-
-	// Animate bones :
-	int idx = 0;
-	glPushMatrix();
-	glLoadIdentity();
-	computeTransfo(_skel, &idx);
-	glPopMatrix();
-
-	// Animate skin :
-#if _SKINNING_GPU
-#else
-	applySkinning();
-#endif
-}
-
-void Skinning::applySkinning() {
-	if (!_keepAppling) return;
-	for (int i = 0; i < _nbVtx; i++) {
-		glm::vec4 newpos(0);
-		for (int j = 0; j < _nbJoints; j++)
-			newpos += _weights[i][j] * _transfoCurr[j] * _transfoInitInv[j] * _pointsInit[i];
-		_skin->_points[i] = newpos;
 	}
 }

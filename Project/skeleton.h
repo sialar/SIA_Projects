@@ -42,16 +42,18 @@ public:
 	double _curRx;						// current value of rotation about X (deg)
 	double _curRy;						// current value of rotation about Y (deg)
 	double _curRz;						// current value of rotation about Z (deg)
-	std::vector<glm::vec3> rotationAxis;
-	std::vector<glm::vec3> eulerAngles;
 	int _rorder = roYXZ;				// order of euler angles to reconstruct rotation
 	std::vector<Skeleton*> _children;	// children of the current joint
 
+	std::vector<glm::vec3> rotationAxis;
+	std::vector<glm::vec3> eulerAngles;
 	Skeleton* _parent;
 	int _index;
 
 
 public:
+	static int nbJoints;
+
 	// Constructor :
 	Skeleton() {};
 	// Destructor :
@@ -88,13 +90,6 @@ public:
 	void rotateSkeleton();
 	void animate(int iframe = 0);
 
-	// Test
-	static void testSkeletonCreation(Skeleton* s);
-	static glm::mat3 testEulerToMatrixTransform(float rx, float ry, float rz);
-	static qglviewer::Quaternion testMatrixToQuaternionTransform(glm::mat3 m);
-	static qglviewer::Vec testQuaternionToAxisAngleTransform(qglviewer::Quaternion q);
-	static void testTransform();
-
 	// Analysis of degrees of freedom :
 	static void eulerToMatrix(double rx, double ry, double rz, int rorder, glm::mat3 *R);
 	static void matrixToQuaternion(glm::mat3 R, qglviewer::Quaternion *q);
@@ -103,12 +98,9 @@ public:
 	void nbDofs();
 
 	// Intermediate Functions
-	static void displayMat3(glm::mat3 m);
+	static void testSkeletonCreation(Skeleton* s);
 	static glm::vec3 maxDistance(std::vector<glm::vec3>& vector);
-	static glm::mat3 toMat3(glm::mat4 m);
-	glm::vec3 rotationIsConstant(double threshold);
 	int computeNbDofs(double threshold);
-	bool inTheSamePlane(double threshold);
 	void computeAxisAngles();
 };
 

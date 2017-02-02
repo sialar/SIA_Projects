@@ -3,7 +3,7 @@
 
 using namespace std;
 
-std::string jointNameCol = "ltibia";
+std::string jointNameCol = "lhumerus";
 
 #if _SKINNING_GPU
 #define BUFFER_OFFSET(a) ((char*)NULL + (a))
@@ -212,6 +212,7 @@ void Viewer::init()
   // set new key descriptions :
   setKeyDescription(Qt::Key_L, "Load an animation (.bvh)");
   setKeyDescription(Qt::Key_W, "Change weight computation method");
+  setKeyDescription(Qt::Key_S, "Skinning ON / OFF");
 
   // Load skeleton :
   _root = NULL;
@@ -237,7 +238,7 @@ void Viewer::init()
   _skinning->_skin = _human;
   _skinning->_skel = _root;
   _skinning->init();
-  //_skinning->paintWeights(jointNameCol);
+  _skinning->paintWeights(jointNameCol);
 
 #if _SKINNING_GPU
   glewInit();
@@ -307,36 +308,35 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 	QString filename;
 	char fname[600];
 	switch (e->key()) {
-		case Qt::Key_L :		// Load new mocap sequence
-			filename = QFileDialog::getOpenFileName(this, tr("Select a mocap sequence"), "data/", tr("Mocap (*.bvh);;All files (*)"));
-			if (filename.compare("")) {
-				if (_root) delete _root;
-				_root = NULL;
-				sprintf_s(fname, "%s", filename.toAscii().data());
-				_root = Skeleton::createFromFile(fname);
-				if (_root) {
-					if (_root->_dofs.size())
-						_nframes = _root->_dofs[0]._values.size();
-					else
-						_nframes = 0;
-					_iframe = 0;
-					_root->nbDofs();
-				}
-				if (_skinning) {
-					_skinning->_skel = _root;
-					_skinning->recomputeWeights();
-					if (_skinning->_skin->_colors.size())
-						_skinning->paintWeights(jointNameCol);
-				}
-				_skinning->_keepAppling = true;
-				_skinning->_skin->_keep_drawing = true;
-				animate();
-				updateGL();
+	case Qt::Key_L:		// Load new mocap sequence
+		filename = QFileDialog::getOpenFileName(this, tr("Select a mocap sequence"), "data/", tr("Mocap (*.bvh);;All files (*)"));
+		if (filename.compare("")) {
+			if (_root) delete _root;
+			_root = NULL;
+			sprintf_s(fname, "%s", filename.toAscii().data());
+			_root = Skeleton::createFromFile(fname);
+			if (_root) {
+				if (_root->_dofs.size())
+					_nframes = _root->_dofs[0]._values.size();
+				else
+					_nframes = 0;
+				_iframe = 0;
+				_root->nbDofs();
 			}
-			break;
+			if (_skinning) {
+				_skinning->_skel = _root;
+				_skinning->recomputeWeights();
+				_skinning->paintWeights(jointNameCol);
+			}
+			_skinning->_keepAppling = true;
+			_skinning->_skin->_keepDrawing = true;
+			animate();
+			updateGL();
+		}
+		break;
 		case Qt::Key_W :		// Modify computation of weights for skinning
 			if (!_skinning) return;
-			_skinning->_meth = (_skinning->_meth + 1) % _skinning->_nbMeth;
+			_skinning->_meth = (_skinning->_meth+1)%_skinning->_nbMeth;
 			_skinning->recomputeWeights();
 			if (_skinning->_skin->_colors.size())
 				_skinning->paintWeights(jointNameCol);
@@ -346,14 +346,14 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 			saveStateToFile();
 			exit(1);
 			break;
-		case Qt::Key_Q:		// quit
+		case Qt::Key_Q :		// quit
 			saveStateToFile();
 			exit(1);
 			break;
-		case Qt::Key_S:	
+		case Qt::Key_S:
 			if (!_skinning) return;
 			_skinning->_keepAppling = !_skinning->_keepAppling;
-			_skinning->_skin->_keep_drawing = !_skinning->_skin->_keep_drawing;
+			_skinning->_skin->_keepDrawing = !_skinning->_skin->_keepDrawing;
 			break;
 		default :
 			QGLViewer::keyPressEvent(e);

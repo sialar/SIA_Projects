@@ -17,12 +17,12 @@ public :
 	glm::vec4 _color;								// if colors empty : color of all vertices
 
 	int _nbEdges; // mesh of triangles or quads?
-	bool _keep_drawing;
+	bool _keepDrawing;
 
-public :
+public:
 	Mesh() {
-		_color = glm::vec4(1.0,0.6,0.6,0.9);
-		_keep_drawing = true;
+		_color = glm::vec4(1.0, 0.6, 0.6, 0.9);
+		_keepDrawing = true;
 	}
 
 	~Mesh() {

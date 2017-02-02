@@ -6,7 +6,7 @@
 
 void Mesh::draw() 
 {
-	if (!_keep_drawing) return;
+	if (!_keepDrawing) return;
 	bool normalsOk = (_normals.size()==_points.size());
 	bool colorsOk = (_colors.size()==_points.size());
 	glEnable(GL_NORMALIZE);
