@@ -327,9 +327,10 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 				_skinning->_skel = _root;
 				_skinning->recomputeWeights();
 				_skinning->paintWeights(jointNameCol);
+
+				_skinning->_keepAppling = true;
+				_skinning->_skin->_keepDrawing = true;
 			}
-			_skinning->_keepAppling = true;
-			_skinning->_skin->_keepDrawing = true;
 			animate();
 			updateGL();
 		}

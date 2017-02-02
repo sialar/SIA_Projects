@@ -350,20 +350,20 @@ void Skeleton::eulerToAxisAngle(double rx, double ry, double rz, int rorder, qgl
 	matrixToQuaternion(R, &q);
 	// quaternion -> axis/angle :
 	quaternionToAxisAngle(q, vaa);
-	/*
+	
 	// Using qglviewer and glm functions
-	glm::mat3 R = toMat3(glm::eulerAngleYXZ((float)ry, (float)rx, (float)rz));
+	R = toMat3(glm::eulerAngleYXZ((float)ry, (float)rx, (float)rz));
 
 	glm::quat glmQuat = glm::toQuat(R);
 	qglviewer::Quaternion qglviewerQuat;
-	float mat[3][3];
+	double mat[3][3];
 	for (int i = 0; i < 3; i++)
 		for (int j = 0; j < 3; j++)
 			mat[i][j] = R[i][j];
 	qglviewerQuat.setFromRotationMatrix(mat);
 
 	*vaa = qglviewerQuat.axis();
-	*/
+	
 }
 
 void Skeleton::nbDofs() {

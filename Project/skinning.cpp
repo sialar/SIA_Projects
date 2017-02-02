@@ -59,7 +59,7 @@ void Skinning::recomputeWeights() {
 		break;
 	case 2: 
 		cout << "computing weights (cylindric distance)\n";
-		computeCylindricWeights(); 
+		computeCylindricWeightsRafik(); 
 		break;
 	default:
 		break;
@@ -261,7 +261,7 @@ double cylindricDistance(glm::vec4 c, glm::vec3 ab, glm::vec4 v) {
 	return glm::length(vertex - i);
 }
 
-glm::vec3 toVec3(glm::vec4 v) {
+glm::vec3 Skinning::toVec3(glm::vec4 v) {
 	return glm::vec3(v.x, v.y, v.z);
 }
 
@@ -307,7 +307,7 @@ void Skinning::computeCylindricWeightsRafik() {
 		xA = center - halfU2;
 		xB = center + halfU2;
 		u1 = x - xA;
-
+		double d;
 		if (glm::length(u2)) {
 			double p = glm::dot(u1, u2) / pow(glm::length(u2), 2);
 			if (p < 0) {
@@ -321,7 +321,8 @@ void Skinning::computeCylindricWeightsRafik() {
 				xI = xA + u2;
 				u2 /= p;
 			}
-			_weights[i][min_index] = glm::length(xI - xA) / glm::length(u2);
+			d = glm::length(x - xI);
+			_weights[i][min_index] = 1/d;
 		}
 		else
 			_weights[i][min_index] = 1;
@@ -351,26 +352,26 @@ void Skinning::computeCylindricWeights() {
 			}
 		}
 		//get children of the joint
-		glm::vec3 position1 = position1 = glm::vec3((*(_joints[index1]))._offX, (*(_joints[index1]))._offY, (*(_joints[index1]))._offZ);
-		vector<Skeleton*> children_min = (*(_joints[index1]))._children;
+		glm::vec3 position1 = glm::vec3(_joints[index1]->_offX, _joints[index1]->_offY, _joints[index1]->_offZ);
+		vector<Skeleton*> children_min = _joints[index1]->_children;
 		//get their indices
 		bool firstIteration = true;
 		double tempdist;
 		int index2;
 		glm::vec3 position2;
-		for (vector<Skeleton*>::iterator s = children_min.begin(); s != children_min.end(); ++s) {
+		for (Skeleton* s : children_min) {
 			if (firstIteration) {
-				min_dist = sqrt(pow((**s)._offX - _pointsInit[i].x, 2) + pow((**s)._offY - _pointsInit[i].y, 2) + pow((**s)._offZ - _pointsInit[i].z, 2));
-				index2 = (**s)._index;
-				position2 = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
+				min_dist = glm::length(glm::vec3(s->_offX, s->_offY, s->_offZ) - toVec3(_pointsInit[i]));
+				index2 = s->_index;
+				position2 = glm::vec3(s->_offX, s->_offY, s->_offZ);
 				firstIteration = false;
 			}
 			else {
-				tempdist = sqrt(pow((**s)._offX - _pointsInit[i].x, 2) + pow((**s)._offY - _pointsInit[i].y, 2) + pow((**s)._offZ - _pointsInit[i].z, 2));
+				tempdist = glm::length(glm::vec3(s->_offX, s->_offY, s->_offZ) - toVec3(_pointsInit[i]));
 				if (tempdist < min_dist) {
 					min_dist = tempdist;
-					index2 = (**s)._index;
-					position2 = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
+					index2 = s->_index;
+					position2 = glm::vec3(s->_offX, s->_offY, s->_offZ);
 				}
 			}
 		}
@@ -378,13 +379,13 @@ void Skinning::computeCylindricWeights() {
 		// TODO : les problèmes sont dans ce calcul a priori (là j'ai mis les poids à 0 et 1 pour voir quelles articulations on a sélectionnées)
 		// index1 et index2 sont les index des 2 articulations sélectionnées
 		// et poisition1 et position2 sont les positions initiales des articulations 
-		glm::vec3 temp = (glm::dot(glm::vec3(_pointsInit[i].x, _pointsInit[i].y, _pointsInit[i].z), position1 - position2) / glm::distance(position1, position2))*(position1 - position2) - position2;
+		glm::vec3 temp = (glm::dot(toVec3(_pointsInit[i]), position1 - position2) / glm::distance(position1, position2)) * (position1 - position2) - position2;
 		//_weights[i][index1] = glm::distance(temp, glm::vec3(0, 0, 0)) / glm::distance(position1, position2);
-		temp = (glm::dot(glm::vec3(_pointsInit[i].x, _pointsInit[i].y, _pointsInit[i].z), position2 - position1) / glm::distance(position2, position1))*(position2 - position1) - position1;
+		//temp = (glm::dot(glm::vec3(_pointsInit[i].x, _pointsInit[i].y, _pointsInit[i].z), position2 - position1) / glm::distance(position2, position1))*(position2 - position1) - position1;
 		//_weights[i][index2] = glm::distance(temp, glm::vec3(0, 0, 0)) / glm::distance(position2, position1);
 		_weights[i][index1] = 0;
 		_weights[i][index2] = 1;
-		if (_weights[i][index2] + _weights[i][index1] - 1 > 0.0001)
-			cout << "problème dans les coordonnées cyl " << _weights[i][index2] + _weights[i][index1] << endl;
+		//if (_weights[i][index2] + _weights[i][index1] - 1 > 0.0001)
+		//	cout << "problème dans les coordonnées cyl " << _weights[i][index2] + _weights[i][index1] << endl;
 	}
 }

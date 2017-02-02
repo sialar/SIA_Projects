@@ -58,7 +58,6 @@ public:
 	void computeCylindricWeights();				// compute from data
 	void computeCylindricWeightsRafik();
 	void loadWeights(std::string filename);	// load from file extracted from Maya
-											// re-initialize weights :
 	void recomputeWeights();
 
 	// color the vertices of _skel according to the influence of jointName :
@@ -69,6 +68,7 @@ public:
 	// apply skinning to _skel :
 	void applySkinning();
 
+	static glm::vec3 toVec3(glm::vec4 v);
 };
 
 #endif
