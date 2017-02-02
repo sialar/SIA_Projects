@@ -200,6 +200,9 @@ void Viewer::animate()
 	if (_root) _root->animate(_iframe);
 
 	// Apply skinning to mesh :
+	if (ok)
+		_skinning->init();
+	ok = false; 
 	if (_skinning) _skinning->animate();
 }
 
@@ -216,7 +219,8 @@ void Viewer::init()
 
   // Load skeleton :
   _root = NULL;
-  _root = Skeleton::createFromFile("data/walk.bvh");
+  /*Skeleton* r*/_root = Skeleton::createFromFile("data/walk.bvh");
+  //_root = Skeleton::createNewAnimation();
   if (_root) {
 	  if (_root->_dofs.size())
 		  _nframes = _root->_dofs[0]._values.size();
@@ -227,7 +231,7 @@ void Viewer::init()
   }
   _human = NULL;
   _skinning = NULL;
-
+  //Skeleton::testSkeletonCreation(r);
 #if _SKINNING_ON
   // Load mesh :
   _human = new Mesh();
