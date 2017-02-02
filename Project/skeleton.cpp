@@ -6,6 +6,27 @@
 using namespace std;
 int Skeleton::nbJoints = 0;
 
+Skeleton::Skeleton(Skeleton* s) {
+	_name = s->_name;				
+	_offX = s->_offX;						
+	_offY = s->_offY;						
+	_offZ = s->_offZ;	
+	_dofs = s->_dofs;	
+	_curTx = s->_curTx;						
+	_curTy = s->_curTy;					
+	_curTz = s->_curTz;					
+	_curRx = s->_curRx;					
+	_curRy = s->_curRy;					
+	_curRz = s->_curRz;					
+	_rorder = s->_rorder;				
+	_children.resize(s->_children.size());
+	for (uint i = 0; i < s->_children.size(); i++)
+		_children[i] = new Skeleton(s->_children[i]);
+
+	_parent = new Skeleton(s->_parent);
+	_index = s->_index;
+}
+
 void Skeleton::testSkeletonCreation(Skeleton* s)
 {
 	cout << "Testing the skeleton creation ...\n";
@@ -350,10 +371,10 @@ void Skeleton::eulerToAxisAngle(double rx, double ry, double rz, int rorder, qgl
 	matrixToQuaternion(R, &q);
 	// quaternion -> axis/angle :
 	quaternionToAxisAngle(q, vaa);
-	
+	/*
 	// Using qglviewer and glm functions
 	R = toMat3(glm::eulerAngleYXZ((float)ry, (float)rx, (float)rz));
-
+	
 	glm::quat glmQuat = glm::toQuat(R);
 	qglviewer::Quaternion qglviewerQuat;
 	double mat[3][3];
@@ -362,8 +383,7 @@ void Skeleton::eulerToAxisAngle(double rx, double ry, double rz, int rorder, qgl
 			mat[i][j] = R[i][j];
 	qglviewerQuat.setFromRotationMatrix(mat);
 
-	*vaa = qglviewerQuat.axis();
-	
+	*vaa = qglviewerQuat.axis();*/	
 }
 
 void Skeleton::nbDofs() {
@@ -375,14 +395,13 @@ void Skeleton::nbDofs() {
 	computeAxisAngles();
 
 	nbDofsR = computeNbDofs(tol);
-	cout << _name << " : " << nbDofsR << endl;// " degree(s) of freedom in rotation\n";
+	//cout << _name << " : " << nbDofsR << endl;// " degree(s) of freedom in rotation\n";
 
 											  // Propagate to children :
 	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
 		_children[ichild]->nbDofs();
 	}
 }
-
 int Skeleton::computeNbDofs(double threshold)
 {
 	glm::vec3 eulerMaxDist = maxDistance(eulerAngles);
@@ -426,7 +445,6 @@ int Skeleton::computeNbDofs(double threshold)
 	return 2;
 }
 
-
 void Skeleton::computeAxisAngles()
 {
 	double x = 0, y = 0, z = 0;
@@ -447,7 +465,6 @@ void Skeleton::computeAxisAngles()
 		rotationAxis.push_back(glm::vec3(vaa[0], vaa[1], vaa[2]));
 	}
 }
-
 glm::vec3 Skeleton::maxDistance(std::vector<glm::vec3>& vector)
 {
 	std::vector<float> xVector, yVector, zVector;
@@ -465,4 +482,27 @@ glm::vec3 Skeleton::maxDistance(std::vector<glm::vec3>& vector)
 	dist.y = *max_element(yVector.begin(), yVector.end()) - *min_element(yVector.begin(), yVector.end());
 	dist.z = *max_element(zVector.begin(), zVector.end()) - *min_element(zVector.begin(), zVector.end());
 	return dist;
+}
+
+void Skeleton::resizeDofs(int size) {
+	for (uint i = 0; i < _dofs.size(); i++)
+		_dofs[i]._values.resize(size);
+	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
+		_children[ichild]->resizeDofs(size);
+	}
+}
+
+void Skeleton::reduceVectorSize(std::vector<double> vec) {
+
+}
+Skeleton* Skeleton::createNewAnimation() {
+	Skeleton* root1 = createFromFile("data/walk.bvh");
+	Skeleton* root2 = createFromFile("data/run.bvh");
+	int minDofsSize = min(root1->_dofs[0]._values.size(), root2->_dofs[0]._values.size());
+	cout << "min nb frames : " << minDofsSize << endl;
+
+	Skeleton* newRoot = root1;
+	newRoot->resizeDofs(minDofsSize);
+
+	return root2;
 }

@@ -56,6 +56,7 @@ public:
 
 	// Constructor :
 	Skeleton() {};
+	Skeleton(Skeleton* s);
 	// Destructor :
 	~Skeleton() {
 		_dofs.clear();
@@ -102,6 +103,10 @@ public:
 	static glm::vec3 maxDistance(std::vector<glm::vec3>& vector);
 	int computeNbDofs(double threshold);
 	void computeAxisAngles();
+
+	void resizeDofs(int size);
+	void reduceVectorSize(std::vector<double> vec);
+	static Skeleton* createNewAnimation();
 };
 
 
