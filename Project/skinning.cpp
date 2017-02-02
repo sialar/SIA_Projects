@@ -59,7 +59,7 @@ void Skinning::recomputeWeights() {
 		break;
 	case 2: 
 		cout << "computing weights (cylindric distance)\n";
-		computeCylindricWeightsRafik(); 
+		computeCylindricWeights(); 
 		break;
 	default:
 		break;
@@ -231,98 +231,8 @@ void Skinning::applySkinning() {
 }
 
 
-glm::vec3 toVec3(glm::vec4 v) {
+glm::vec3 Skinning::toVec3(glm::vec4 v) {
 	return glm::vec3(v.x, v.y, v.z);
-}
-
-double cylindricDistance(glm::vec4 c, glm::vec3 ab, glm::vec4 v) {
-	// offset = vector ab
-	// center = center of ab
-	glm::vec3 center = toVec3(c);
-	glm::vec3 vertex = toVec3(v);
-	glm::vec3 halfAB(ab);
-	halfAB /= 2;
-	glm::vec3 a, b, i; // points
-	a = center + ab;
-	b = center - ab;
-	glm::vec3 u1, u2; // vectors
-	u1 = vertex - a;
-	u2 = ab;
-
-	double sqrU2Norm = pow(glm::length(u2), 2);
-	if (sqrU2Norm) {
-		double p = glm::dot(u1, u2) / sqrU2Norm;
-		u2 *= p;
-		i = (p < 0) ? a : ((p > 1) ? b : a + u2);
-	}
-	else {
-		i = b;
-	}
-	return glm::length(vertex - i);
-}
-
-void Skinning::computeCylindricWeightsRafik() {
-	if (_skin == NULL) return;
-	if (_skel == NULL) return;
-
-	_weights.resize(_nbVtx);
-	for (int i = 0; i < _nbVtx; i++)
-		_weights[i].resize(_nbJoints);
-
-	for (int i = 0; i < _nbVtx; i++)
-	{
-		//get the nearest joint
-		int min_index = 0;
-		float min_dist = glm::distance(_posBonesInit[0], _pointsInit[i]);
-		for (int j = 1; j < _nbJoints; j++)
-		{
-			_weights[i][j] = 0;
-			if (glm::distance(_posBonesInit[j], _pointsInit[i]) < min_dist)
-			{
-				min_index = j;
-				min_dist = glm::distance(_posBonesInit[j], _pointsInit[i]);
-			}
-		}
-		//_weights[i][index1] = 1;}
-		/*Skeleton* targetBone = _joints[min_dist];
-		Skeleton* targetBoneChild = targetBone->_children[0];
-		glm::vec3 targetBonePos = toVec3(_posBonesInit[min_index]);
-		glm::vec3 targetBoneChildPos = toVec3(_posBonesInit[min_index + 1]);
-		glm::vec3 queryTargetBoneChildPos = targetBonePos + glm::vec3(targetBoneChild->_offX, targetBoneChild->_offY, targetBoneChild->_offZ);
-
-		cout << queryTargetBoneChildPos.x << " " << queryTargetBoneChildPos.y << " " << queryTargetBoneChildPos.z << endl;
-		cout << targetBoneChildPos.x << " " << targetBoneChildPos.y << " " << targetBoneChildPos.z << endl << endl;
-		*/
-		Skeleton* targetBone = _joints[min_dist];
-		glm::vec3 u1, u2, halfU2, xA, xB, xI, x, center;
-		x = toVec3(_pointsInit[i]);
-		center = toVec3(_posBonesInit[min_index]);
-		u2 = glm::vec3(targetBone->_offX, targetBone->_offY, targetBone->_offZ);
-		halfU2 = u2;
-		halfU2 /= 2;
-		xA = center - halfU2;
-		xB = center + halfU2;
-		u1 = x - xA;
-		double d;
-		if (glm::length(u2)) {
-			double p = glm::dot(u1, u2) / pow(glm::length(u2), 2);
-			if (p < 0) {
-				xI = xA;
-			}
-			else if (p > 1) {
-				xI = xB;
-			}
-			else {
-				u2 *= p;
-				xI = xA + u2;
-				u2 /= p;
-			}
-			d = glm::length(x - xI);
-			_weights[i][min_index] = 1/d;
-		}
-		else
-			_weights[i][min_index] = 1;
-	}
 }
 
 glm::vec3 Skinning::getPosition(int index) {
@@ -404,7 +314,7 @@ void Skinning::computeCylindricWeights() {
 		_weights[i][index2] = d1 / n;
 		_weights[i][index1] = d2 / n;
 		if (_weights[i][index2] + _weights[i][index1] - 1 > 0.0001)
-			cout << "probl�me dans les coordonnees cyl " << _weights[i][index2] + _weights[i][index1] << endl;
+			cout << "probleme dans les coordonnees cyl " << _weights[i][index2] + _weights[i][index1] << endl;
 
 	}
 }
