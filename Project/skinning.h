@@ -56,8 +56,7 @@ public:
 	// build _weights :
 	void computeRigidWeights();					// compute from data
 	void computeCylindricWeights();				// compute from data
-	glm::vec3 getPosition(int index);			//get the global intial position
-	void computeCylindricWeightsQuentin();
+	void computeCylindricWeightsRafik();
 	void loadWeights(std::string filename);	// load from file extracted from Maya
 											// re-initialize weights :
 	void recomputeWeights();
