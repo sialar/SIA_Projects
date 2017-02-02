@@ -1,10 +1,26 @@
 #include "skeleton.h"
 #include <skeletonIO.h>
 #include <qglviewer.h>
+#include <sstream>
 
 
 using namespace std;
 int Skeleton::nbJoints = 0;
+
+string tabulation(int level) {
+	stringstream s;
+	for (int i = 0; i < level; i++)
+		s << "\t";
+	return s.str();
+}
+void Skeleton::show(Skeleton* skel, int level) {
+	cout << tabulation(level) << skel->_name << endl;
+	cout << tabulation(level) << "_offset = (" << skel->_offX << ", " << skel->_offY << ", " << skel->_offZ << ")" << endl;
+	cout << tabulation(level) << "_curT = (" << skel->_curTx << ", " << skel->_curTy << ", " << skel->_curTz << ")" << endl;
+	cout << tabulation(level) << "_curR = (" << skel->_curRx << ", " << skel->_curRy << ", " << skel->_curRz << ")" << endl;
+	for (Skeleton* s : skel->_children)
+		show(s, level + 1);
+}
 
 Skeleton::Skeleton(Skeleton* s) {
 	_name = s->_name;				
@@ -25,21 +41,6 @@ Skeleton::Skeleton(Skeleton* s) {
 
 	_parent = new Skeleton(s->_parent);
 	_index = s->_index;
-}
-
-void Skeleton::testSkeletonCreation(Skeleton* s)
-{
-	cout << "Testing the skeleton creation ...\n";
-	cout << "Name = " << s->_name << endl;
-	cout << "Offset = (" << s->_offX << ", " << s->_offY << ", " << s->_offZ << ")" << endl;
-	cout << "The skeleton have (" << s->_dofs.size() << ") dofs:" << endl;
-	for (AnimCurve dof : s->_dofs)
-		cout << "\t- " << dof.name << " = " << dof._values.front() << ", ..., " << dof._values.back() << endl;
-	cout << "The skeleton have (" << s->_children.size() << ") children:" << endl;
-	for (Skeleton* sk : s->_children)
-		cout << "\t- " << sk->_name << endl;
-	if (s->_parent)
-		cout << "The skeleton parent is " << s->_parent->_name << endl;
 }
 Skeleton* Skeleton::createFromFile(const string fileName) {
 	bool                    is_load_success;
@@ -223,7 +224,16 @@ void Skeleton::draw()
 	}
 	glPopMatrix();
 }
-
+void Skeleton::init()
+{
+	// Update dofs :
+	_curTx = 0; _curTy = 0; _curTz = 0;
+	_curRx = 0; _curRy = 0; _curRz = 0;
+	// Animate children :
+	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
+		_children[ichild]->init();
+	}
+}
 void Skeleton::animate(int iframe) 
 {
 	// Update dofs :

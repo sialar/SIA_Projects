@@ -3,7 +3,7 @@
 
 using namespace std;
 
-std::string jointNameCol = "lhumerus";
+std::string jointNameCol = "lfemur";
 
 #if _SKINNING_GPU
 #define BUFFER_OFFSET(a) ((char*)NULL + (a))
@@ -190,7 +190,6 @@ void Viewer::draw()
 	}
 	glPopMatrix();
 }
-
 void Viewer::animate() 
 {
 	// Update frame number :
@@ -224,6 +223,8 @@ void Viewer::init()
 		  _nframes = 0;
 	  _iframe = 0;
 	  _root->nbDofs();
+	  _root->init();
+	  //Skeleton::show(_root,0);
   }
   _human = NULL;
   _skinning = NULL;
@@ -322,14 +323,15 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 					_nframes = 0;
 				_iframe = 0;
 				_root->nbDofs();
+				_root->init();
 			}
 			if (_skinning) {
 				_skinning->_skel = _root;
 				_skinning->recomputeWeights();
 				_skinning->paintWeights(jointNameCol);
+				_skinning->_keepAppling = true;
+				_skinning->_skin->_keepDrawing = true;
 			}
-			_skinning->_keepAppling = true;
-			_skinning->_skin->_keepDrawing = true;
 			animate();
 			updateGL();
 		}

@@ -7,6 +7,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
+#include <string>
 
 class Skinning
 {
@@ -54,11 +55,13 @@ public:
 	void computeTransfo(Skeleton *skel, int *idx);
 
 	// build _weights :
-	void computeRigidWeights();					// compute from data
-	void computeCylindricWeights();				// compute from data
-	glm::vec3 getPosition(int index);		//renvoie la position initiale absolue du joint
+	void computeRigidWeights();				// compute from data
+	void computeCylindricWeights();			// compute from data
 	void loadWeights(std::string filename);	// load from file extracted from Maya
 	void recomputeWeights();
+	int closestBoneIndex(int vertex); // return the index of the closest bone to vertex
+	glm::vec3 getPosition(int index);		// renvoie la position initiale absolue du joint
+	int closetChildIndex(int parentIndex);
 
 	// color the vertices of _skel according to the influence of jointName :
 	void paintWeights(std::string jointName);
@@ -67,8 +70,6 @@ public:
 	void animate();
 	// apply skinning to _skel :
 	void applySkinning();
-
-	static glm::vec3 toVec3(glm::vec4 v);
 };
 
 #endif

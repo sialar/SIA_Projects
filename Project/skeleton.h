@@ -84,12 +84,14 @@ public:
 
 	// Load from file (.bvh) :	
 	static Skeleton* createFromFile(std::string fileName);
+	static void show(Skeleton* skel, int level);
 
 
 	// Viewer methods :
 	void draw();
 	void rotateSkeleton();
 	void animate(int iframe = 0);
+	void init();
 
 	// Analysis of degrees of freedom :
 	static void eulerToMatrix(double rx, double ry, double rz, int rorder, glm::mat3 *R);
@@ -99,7 +101,6 @@ public:
 	void nbDofs();
 
 	// Intermediate Functions
-	static void testSkeletonCreation(Skeleton* s);
 	static glm::vec3 maxDistance(std::vector<glm::vec3>& vector);
 	int computeNbDofs(double threshold);
 	void computeAxisAngles();
