@@ -1,4 +1,4 @@
-#include "skinning.h"
+ï»¿#include "skinning.h"
 
 using namespace std;
 
@@ -261,10 +261,6 @@ double cylindricDistance(glm::vec4 c, glm::vec3 ab, glm::vec4 v) {
 	return glm::length(vertex - i);
 }
 
-glm::vec3 Skinning::toVec3(glm::vec4 v) {
-	return glm::vec3(v.x, v.y, v.z);
-}
-
 void Skinning::computeCylindricWeightsRafik() {
 	if (_skin == NULL) return;
 	if (_skel == NULL) return;
@@ -329,6 +325,18 @@ void Skinning::computeCylindricWeightsRafik() {
 	}
 }
 
+glm::vec3 Skinning::getPosition(int index) {
+	glm::vec3 result(0);
+	Skeleton* skel = _joints[index];
+	result = result + glm::vec3((*skel)._offX, (*skel)._offY, (*skel)._offZ);
+	while ((*skel)._parent != NULL) {
+		skel = (*skel)._parent;
+		result = result + glm::vec3((*skel)._offX, (*skel)._offY, (*skel)._offZ);
+	}
+	return result;
+}
+
+
 void Skinning::computeCylindricWeights() {
 	if (_skin == NULL) return;
 	if (_skel == NULL) return;
@@ -345,10 +353,15 @@ void Skinning::computeCylindricWeights() {
 		for (int j = 1; j < _nbJoints; j++)
 		{
 			_weights[i][j] = 0;
-			if (glm::distance(_posBonesInit[j], _pointsInit[i]) < min_dist)
-			{
-				index1 = j;
-				min_dist = glm::distance(_posBonesInit[j], _pointsInit[i]);
+			if ((*_joints[j])._children.size() > 0) {
+				glm::vec3 boneLength = glm::vec3((*(*_joints[j])._children[0])._offX, (*(*_joints[j])._children[0])._offY, (*(*_joints[j])._children[0])._offZ);
+				if (glm::length(boneLength) > 0.0001) {
+					if (glm::distance(_posBonesInit[j], _pointsInit[i]) < min_dist)
+					{
+						index1 = j;
+						min_dist = glm::distance(_posBonesInit[j], _pointsInit[i]);
+					}
+				}
 			}
 		}
 		//get children of the joint
@@ -358,34 +371,40 @@ void Skinning::computeCylindricWeights() {
 		bool firstIteration = true;
 		double tempdist;
 		int index2;
+		glm::vec3 u;
 		glm::vec3 position2;
-		for (Skeleton* s : children_min) {
+		glm::vec3 position2temp;
+		glm::vec3 utemp;
+		for (vector<Skeleton*>::iterator s = children_min.begin(); s != children_min.end(); ++s) {
 			if (firstIteration) {
-				min_dist = glm::length(glm::vec3(s->_offX, s->_offY, s->_offZ) - toVec3(_pointsInit[i]));
-				index2 = s->_index;
-				position2 = glm::vec3(s->_offX, s->_offY, s->_offZ);
+				index2 = (**s)._index;
+				u = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
+				position2 = position1 + u;
+				min_dist = glm::distance(position2, toVec3(_pointsInit[i]));
 				firstIteration = false;
 			}
 			else {
-				tempdist = glm::length(glm::vec3(s->_offX, s->_offY, s->_offZ) - toVec3(_pointsInit[i]));
+				utemp = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
+				position2temp = position1 + utemp;
+				tempdist = glm::distance(position2temp, toVec3(_pointsInit[i]));
 				if (tempdist < min_dist) {
 					min_dist = tempdist;
-					index2 = s->_index;
-					position2 = glm::vec3(s->_offX, s->_offY, s->_offZ);
+					index2 = (**s)._index;
+					u = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
 				}
 			}
 		}
 		// calculer les poids de skinning
-		// TODO : les problèmes sont dans ce calcul a priori (là j'ai mis les poids à 0 et 1 pour voir quelles articulations on a sélectionnées)
-		// index1 et index2 sont les index des 2 articulations sélectionnées
-		// et poisition1 et position2 sont les positions initiales des articulations 
-		glm::vec3 temp = (glm::dot(toVec3(_pointsInit[i]), position1 - position2) / glm::distance(position1, position2)) * (position1 - position2) - position2;
-		//_weights[i][index1] = glm::distance(temp, glm::vec3(0, 0, 0)) / glm::distance(position1, position2);
-		//temp = (glm::dot(glm::vec3(_pointsInit[i].x, _pointsInit[i].y, _pointsInit[i].z), position2 - position1) / glm::distance(position2, position1))*(position2 - position1) - position1;
-		//_weights[i][index2] = glm::distance(temp, glm::vec3(0, 0, 0)) / glm::distance(position2, position1);
-		_weights[i][index1] = 0;
-		_weights[i][index2] = 1;
-		//if (_weights[i][index2] + _weights[i][index1] - 1 > 0.0001)
-		//	cout << "problème dans les coordonnées cyl " << _weights[i][index2] + _weights[i][index1] << endl;
+		float projPoint = - glm::dot(toVec3(_pointsInit[i]), u) / glm::length(u);
+		float projFils = - glm::dot(position2, u) / glm::length(u);
+		float projPere = - glm::dot(position1, u) / glm::length(u);
+		float d1 = 1 / (projPoint - projFils);
+		float d2 = 1 / (projPere - projPoint);
+		float n = d1 + d2;
+		_weights[i][index2] = d1 / n;
+		_weights[i][index1] = d2 / n;
+		if (_weights[i][index2] + _weights[i][index1] - 1 > 0.0001)
+			cout << "problï¿½me dans les coordonnees cyl " << _weights[i][index2] + _weights[i][index1] << endl;
+
 	}
 }

@@ -242,3 +242,16 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+.gitattributes
+Project/characterAnim.vcxproj
+Project/characterAnim.vcxproj.filters
+Project/skeleton.cpp.rej
+Project/skinning_BACKUP_4884.cpp
+Project/skinning_BASE_4884.cpp
+Project/skinning_LOCAL_4884.cpp
+Project/skinning_REMOTE_4884.cpp
+SIA_Project.vcxproj
+SIA_Project.vcxproj.filters
+packages.config
+skinningShader.fs
+skinningShader.vs

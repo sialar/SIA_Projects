@@ -25,7 +25,6 @@ private :
 
 	Skinning *_skinning;	// skinning data
 
-	bool ok = true;
 
 protected :
 

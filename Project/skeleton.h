@@ -1,4 +1,4 @@
-#ifndef _SKELETON_H_
+=#ifndef _SKELETON_H_
 #define _SKELETON_H_
 
 #include <string>
@@ -108,6 +108,3 @@ public:
 	void reduceVectorSize(std::vector<double> vec);
 	static Skeleton* createNewAnimation();
 };
-
-
-#endif

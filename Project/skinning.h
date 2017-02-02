@@ -57,6 +57,7 @@ public:
 	void computeRigidWeights();					// compute from data
 	void computeCylindricWeights();				// compute from data
 	void computeCylindricWeightsRafik();
+	glm::vec3 getPosition(int index);		//renvoie la position initiale absolue du joint
 	void loadWeights(std::string filename);	// load from file extracted from Maya
 	void recomputeWeights();
 
