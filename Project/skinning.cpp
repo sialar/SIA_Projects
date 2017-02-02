@@ -260,12 +260,28 @@ void Skinning::computeCylindricWeights() {
 		//get the nearest joint
 		int index1 = 0;
 		float min_dist = glm::distance(_posBonesInit[0], _pointsInit[i]);
+		
+		//vérification des enfants de l'os 0
+		bool nonZeroChild = false;
+		for (vector<Skeleton*>::iterator s = (*_joints[0])._children.begin(); s != (*_joints[0])._children.end(); ++s) {
+			glm::vec3 boneLength = glm::vec3((*(**s)._children[0])._offX, (*(**s)._children[0])._offY, (*(**s)._children[0])._offZ);
+			nonZeroChild = nonZeroChild || (glm::length(boneLength) > 0.0001);
+		}
+		if(!nonZeroChild){
+		cout << "enfant 0 : " << nonZeroChild << endl;
+		}
+
 		for (int j = 1; j < _nbJoints; j++)
 		{
 			_weights[i][j] = 0;
 			if ((*_joints[j])._children.size() > 0) {
-				glm::vec3 boneLength = glm::vec3((*(*_joints[j])._children[0])._offX, (*(*_joints[j])._children[0])._offY, (*(*_joints[j])._children[0])._offZ);
-				if (glm::length(boneLength) > 0.0001) {
+				nonZeroChild = false;
+				glm::vec3 boneLength;
+				for (vector<Skeleton*>::iterator s = (*_joints[j])._children.begin(); s != (*_joints[j])._children.end(); ++s) {
+					boneLength = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
+					nonZeroChild = nonZeroChild || (glm::length(boneLength) > 0.0001);
+				}
+				if(nonZeroChild){
 					if (glm::distance(_posBonesInit[j], _pointsInit[i]) < min_dist)
 					{
 						index1 = j;
@@ -274,6 +290,7 @@ void Skinning::computeCylindricWeights() {
 				}
 			}
 		}
+
 		//get children of the joint
 		glm::vec3 position1 = glm::vec3(_joints[index1]->_offX, _joints[index1]->_offY, _joints[index1]->_offZ);
 		vector<Skeleton*> children_min = _joints[index1]->_children;
@@ -291,18 +308,31 @@ void Skinning::computeCylindricWeights() {
 				u = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
 				position2 = position1 + u;
 				min_dist = glm::distance(position2, toVec3(_pointsInit[i]));
-				firstIteration = false;
+				if (glm::length(u) > 0.0001) {
+					firstIteration = false;
+				}
+				else {
+					cout << "u nul premiere iteration" << endl;
+					cout << "id : " << (**s)._index << endl;
+				}
 			}
 			else {
 				utemp = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
 				position2temp = position1 + utemp;
 				tempdist = glm::distance(position2temp, toVec3(_pointsInit[i]));
-				if (tempdist < min_dist) {
+				if (tempdist < min_dist && glm::length(utemp) > 0.0001) {
 					min_dist = tempdist;
 					index2 = (**s)._index;
-					u = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
+					u = utemp;
+				}
+				else if (glm::length(utemp) < 0.0001) {
+					cout << "u nul" << endl;
+					cout << "id : " << (**s)._index << endl;
 				}
 			}
+		}
+		if (glm::length(u) < 0.0001) {
+			cout << glm::length(u) << endl;
 		}
 		// calculer les poids de skinning
 		float projPoint = - glm::dot(toVec3(_pointsInit[i]), u) / glm::length(u);
