@@ -42,7 +42,7 @@ Skeleton::Skeleton(Skeleton* s) {
 	_parent = new Skeleton(s->_parent);
 	_index = s->_index;
 }
-Skeleton* Skeleton::createFromFile(const string fileName) {
+Skeleton* Skeleton::createFromFile(const string fileName, bool debug) {
 	bool                    is_load_success;
 	string                  motion_name;
 	vector<Skeleton*>       joints;
@@ -55,7 +55,8 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 	Skeleton*				joint = NULL;
 	Skeleton*				new_joint = NULL;
 
-	cout << "Loading from " << fileName << endl;
+	if (debug)	
+		cout << "Loading from " << fileName << endl;
 	ifstream file(fileName.data());
 
 	int iter = 0;
@@ -142,10 +143,12 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 
 		file.close();
 		is_load_success = true;
-		cout << "file loaded" << endl;
+		if (debug)
+			cout << "file loaded" << endl;
 	}
 	else {
-		cerr << "Failed to load the file " << fileName.data() << endl;
+		if (debug)
+			cerr << "Failed to load the file " << fileName.data() << endl;
 		fflush(stdout);
 	}
 	nbJoints = joints.size();
@@ -522,23 +525,17 @@ void fill(Skeleton* s, Skeleton* s1, Skeleton* s2, float coef) {
 	}
 }
 
-Skeleton* Skeleton::createNewAnimation() {
-	Skeleton* root1 = createFromFile("data/walk.bvh");
-	Skeleton* root2 = createFromFile("data/run.bvh");
+Skeleton* Skeleton::createNewAnimation(float coef) {
+	Skeleton* root1 = createFromFile("data/walk.bvh",false);
+	Skeleton* root2 = createFromFile("data/run.bvh",false);
 	int minDofsSize = min(root1->_dofs[0]._values.size(), root2->_dofs[0]._values.size());
-	cout << "min nb frames : " << minDofsSize << endl;
 
 	vector<Skeleton*> joints1, joints2;
 	getJoints(root1, &joints1);
 	getJoints(root2, &joints2);
 	Skeleton* newRoot = root1;
 	newRoot->resizeDofs(minDofsSize);
-	fill(newRoot, root1, root2,0.2);
-
-
-	
-
-
+	fill(newRoot, root1, root2,coef);
 	return newRoot;
 }
 

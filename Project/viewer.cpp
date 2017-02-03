@@ -215,7 +215,8 @@ void Viewer::init()
 
   // Load skeleton :
   _root = NULL;
-  _root = Skeleton::createFromFile("data/walk.bvh");
+  _root = Skeleton::createFromFile("data/walk.bvh",true);
+  _root = Skeleton::createNewAnimation(1);
   if (_root) {
 	  if (_root->_dofs.size())
 		  _nframes = _root->_dofs[0]._values.size();
@@ -308,6 +309,7 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 {
 	QString filename;
 	char fname[600];
+	float coef = -1;
 	switch (e->key()) {
 	case Qt::Key_L:		// Load new mocap sequence
 		filename = QFileDialog::getOpenFileName(this, tr("Select a mocap sequence"), "data/", tr("Mocap (*.bvh);;All files (*)"));
@@ -315,7 +317,7 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 			if (_root) delete _root;
 			_root = NULL;
 			sprintf_s(fname, "%s", filename.toAscii().data());
-			_root = Skeleton::createFromFile(fname);
+			_root = Skeleton::createFromFile(fname,true);
 			if (_root) {
 				if (_root->_dofs.size())
 					_nframes = _root->_dofs[0]._values.size();
@@ -340,7 +342,11 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 	case Qt::Key_I:		// Load new mocap sequence
 		if (_root) delete _root;
 		_root = NULL;
-		_root = Skeleton::createNewAnimation();
+		while (coef > 1 || coef < 0) {
+			cout << "Entrer un coeficient entre 0 et 1.\n\t- 1 : walk\n\t- 0 : run" << endl;
+			cin >> coef;
+		}
+		_root = Skeleton::createNewAnimation(coef);
 		if (_root) {
 			if (_root->_dofs.size())
 				_nframes = _root->_dofs[0]._values.size();

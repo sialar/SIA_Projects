@@ -82,7 +82,7 @@ public:
 	}
 
 	// Load from file (.bvh) :	
-	static Skeleton* createFromFile(std::string fileName);
+	static Skeleton* createFromFile(std::string fileName, bool debug);
 	static void show(Skeleton* skel, int level);
 
 
@@ -105,9 +105,7 @@ public:
 	void computeAxisAngles();
 
 	void resizeDofs(int size);
-	static Skeleton* createNewAnimation();
-	//glm::vec3 getPosition(int index);
-
+	static Skeleton* createNewAnimation(float coef);
 };
 
 #endif
