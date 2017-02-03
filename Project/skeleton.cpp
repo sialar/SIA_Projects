@@ -495,24 +495,52 @@ glm::vec3 Skeleton::maxDistance(std::vector<glm::vec3>& vector)
 }
 
 void Skeleton::resizeDofs(int size) {
-	for (uint i = 0; i < _dofs.size(); i++)
+	for (uint i = 0; i < _dofs.size(); i++) {
+		_dofs[i]._values.clear();
 		_dofs[i]._values.resize(size);
+	}
 	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
 		_children[ichild]->resizeDofs(size);
 	}
 }
-
-void Skeleton::reduceVectorSize(std::vector<double> vec) {
-
+	
+void getJoints(Skeleton* skel, vector<Skeleton*>* joints) {
+	joints->push_back(skel);
+	for (unsigned int ichild = 0; ichild < skel->_children.size(); ichild++) {
+		getJoints(skel->_children[ichild], joints);
+	}
 }
+
+void fill(Skeleton* s, Skeleton* s1, Skeleton* s2, float coef) {
+	for (int i = 0; i < s1->_dofs.size(); i++) {
+		for (int j = 0; j < s1->_dofs[i]._values.size(); j++) {
+			s->_dofs[i]._values[j] = coef*s1->_dofs[i]._values[j] + (1-coef) * s2->_dofs[i]._values[j];
+		}
+	}
+	for (unsigned int ichild = 0; ichild < s1->_children.size(); ichild++) {
+		fill(s->_children[ichild], s1->_children[ichild], s2->_children[ichild], coef);
+	}
+}
+
 Skeleton* Skeleton::createNewAnimation() {
 	Skeleton* root1 = createFromFile("data/walk.bvh");
 	Skeleton* root2 = createFromFile("data/run.bvh");
 	int minDofsSize = min(root1->_dofs[0]._values.size(), root2->_dofs[0]._values.size());
 	cout << "min nb frames : " << minDofsSize << endl;
 
+	vector<Skeleton*> joints1, joints2;
+	getJoints(root1, &joints1);
+	getJoints(root2, &joints2);
 	Skeleton* newRoot = root1;
 	newRoot->resizeDofs(minDofsSize);
+	fill(newRoot, root1, root2,0.2);
 
-	return root2;
+
+	
+
+
+	return newRoot;
 }
+
+
+

@@ -62,6 +62,8 @@ public:
 	int closestBoneIndex(int vertex); // return the index of the closest bone to vertex
 	glm::vec3 getPosition(int index);		// renvoie la position initiale absolue du joint
 	int closetChildIndex(int parentIndex);
+	glm::vec3 meanChildrenPos(int parentIndex);
+	std::vector<int> getChildrenIndex(int parentIndex);
 
 	// color the vertices of _skel according to the influence of jointName :
 	void paintWeights(std::string jointName);

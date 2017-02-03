@@ -50,7 +50,6 @@ public:
 	Skeleton* _parent;
 	int _index;
 
-
 public:
 	static int nbJoints;
 
@@ -106,8 +105,9 @@ public:
 	void computeAxisAngles();
 
 	void resizeDofs(int size);
-	void reduceVectorSize(std::vector<double> vec);
 	static Skeleton* createNewAnimation();
+	//glm::vec3 getPosition(int index);
+
 };
 
 #endif

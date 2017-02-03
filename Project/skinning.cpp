@@ -90,6 +90,22 @@ void Skinning::computeTransfo(Skeleton *skel, int *idx) {
 	glPopMatrix();
 	_transfoCurr[i0] = glm::transpose(_transfoCurr[i0]);
 }
+std::vector<int> Skinning::getChildrenIndex(int parentIndex) {
+	Skeleton* parent = _joints[parentIndex];
+	std::vector<int> childrenIndex;
+	for (Skeleton* child : parent->_children)
+		childrenIndex.push_back(child->_index);
+	return childrenIndex;
+}
+
+glm::vec3 Skinning::meanChildrenPos(int parentIndex) {
+	Skeleton* parent = _joints[parentIndex];
+	glm::vec3 res(0.0);
+	for (Skeleton* child : parent->_children)
+		res += glm::vec3(_posBonesInit[child->_index]);
+	res /= parent->_children.size();
+	return res;
+}
 
 int Skinning::closetChildIndex(int parentIndex) {
 	Skeleton* parent = _joints[parentIndex];
@@ -109,11 +125,6 @@ int Skinning::closetChildIndex(int parentIndex) {
 			closestChildIndex = closestChild->_index;
 		}
 	}
-	/*
-	offset = glm::vec3(parent->_offX, parent->_offY, parent->_offZ);
-	if (glm::length(offset) < min_offset && glm::length(offset) != 0)
-		return _joints[parentIndex]->_parent->_index;
-	*/
 	return closestChildIndex;
 }
 int Skinning::closestBoneIndex(int vertex_index) {
@@ -121,16 +132,6 @@ int Skinning::closestBoneIndex(int vertex_index) {
 	float min_dist = glm::distance(_posBonesInit[0], _pointsInit[vertex_index]);
 	for (int j = 1; j < _nbJoints; j++)
 	{
-		/*
-		if (!_joints[j]->_name.compare("Site"))
-		{
-			if (abs(glm::distance(_posBonesInit[j], _pointsInit[vertex_index])) - min_dist < 0.01)
-				cout << j << " " << vertex_index <<  " " << glm::distance(_posBonesInit[j], _pointsInit[vertex_index]) << " " << min_dist << endl;
-			//cout << getPosition(j).x << " " << getPosition(j).y << " " << getPosition(j).z << endl;
-			//cout << _posBonesInit[j].x << " " << _posBonesInit[j].y << " " << _posBonesInit[j].z << endl << endl;
-		}
-		*/
-		
 		if (glm::distance(_posBonesInit[j], _pointsInit[vertex_index]) < min_dist)
 		{
 			min_index = j;
@@ -206,11 +207,8 @@ void Skinning::computeCylindricWeights() {
 		for (int j = 1; j < _nbJoints; j++)
 			_weights[i][j] = 0;
 
-		if (_joints[jointIndex]->_children.size() > 1) {
-			//cout << "too much children" << endl;
-			_weights[i][jointIndex] = 1;
-		}
-		else if (!_joints[jointIndex]->_name.compare("Site")) {
+
+		if (!_joints[jointIndex]->_name.compare("Site")) {
 			//cout << "is a site" << endl;
 			_weights[i][jointIndex] = 1;
 		} 
@@ -221,27 +219,34 @@ void Skinning::computeCylindricWeights() {
 			
 			x = glm::vec3(_pointsInit[i]);
 			offset = glm::vec3(child->_offX, child->_offY, child->_offZ);
-			xA = getPosition(jointIndex);
-			xB = getPosition(childIndex);
-			u2 = xB - xA;
-			u1 = x - xA;
-			p = glm::dot(u1,u2) / pow(glm::length(u2), 2);
-			if (p < 0)
-				xI = xA;
-			else if (p > 1)
-				xI = xB;
-			else
-				xI = xA + float(p) * xB;
+			if (glm::length(offset) == 0) {
+				_weights[i][jointIndex] = 1;
+			}
+			else {
+				xA = getPosition(jointIndex);
+				xB = meanChildrenPos(jointIndex);
+				u2 = xB - xA;
+				u1 = x - xA;
+				p = glm::dot(u1, u2) / pow(glm::length(u2), 2);
+				if (p < 0)
+					xI = xA;
+				else if (p > 1)
+					xI = xB;
+				else
+					xI = xA + float(p) * xB;
+				
+				d1 = glm::length(xA - xI);
+				d2 = glm::length(xB - xI);
 
-			d1 = glm::length(x - xI);
-			d2 = glm::length(x - xA);
+				wParent = d2 / (d1 + d2);
+				wChild = d1 / (d1 + d2);
 
-			wParent = d2 / (d1 + d2);
-			wChild = d1 / (d1 + d2);
-
-			_weights[i][jointIndex] = wParent;
-			_weights[i][childIndex] = wChild;
-
+				_weights[i][jointIndex] = wParent;
+				_weights[i][childIndex] = wChild;
+				//vector<int> childrenIndex = getChildrenIndex(jointIndex);
+				//for (int k = 0; k < childrenIndex.size(); k++)
+				//	_weights[i][k] = wChild / childrenIndex.size();
+			}
 		}
 	}
 }
