@@ -306,6 +306,7 @@ void Viewer::init()
 
 void Viewer::keyPressEvent(QKeyEvent *e)
 {
+	int version = -1;
 	QString filename;
 	char fname[600];
 	float coef = -1;
@@ -341,11 +342,15 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 	case Qt::Key_I:		// Load new mocap sequence
 		if (_root) delete _root;
 		_root = NULL;
-		while (coef > 1 || coef < 0) {
-			cout << "Entrer un coeficient entre 0 et 1.\n\t- 1 : walk\n\t- 0 : run" << endl;
-			cin >> coef;
+		while (version != 1 && version != 0) {
+			cout << "Choisir la version de l'animation (0 ou 1)" << endl;
+			cin >> version;
 		}
-		_root = Skeleton::createNewAnimationVersion0(coef);
+		if (version==0)
+			_root = Skeleton::createNewAnimationVersion0();
+		else if (version == 1)
+			_root = Skeleton::createNewAnimationVersion1();
+
 		if (_root) {
 			if (_root->_dofs.size())
 				_nframes = _root->_dofs[0]._values.size();
