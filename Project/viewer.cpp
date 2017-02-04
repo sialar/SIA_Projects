@@ -3,7 +3,7 @@
 
 using namespace std;
 
-std::string jointNameCol = "lhumerus";
+std::string jointNameCol = "lfemur";
 
 #if _SKINNING_GPU
 #define BUFFER_OFFSET(a) ((char*)NULL + (a))
@@ -190,7 +190,6 @@ void Viewer::draw()
 	}
 	glPopMatrix();
 }
-
 void Viewer::animate() 
 {
 	// Update frame number :
@@ -216,7 +215,8 @@ void Viewer::init()
 
   // Load skeleton :
   _root = NULL;
-  _root = Skeleton::createFromFile("data/walk.bvh");
+  _root = Skeleton::createFromFile("data/walk.bvh",true);
+  _root = Skeleton::createNewAnimation(1);
   if (_root) {
 	  if (_root->_dofs.size())
 		  _nframes = _root->_dofs[0]._values.size();
@@ -224,6 +224,8 @@ void Viewer::init()
 		  _nframes = 0;
 	  _iframe = 0;
 	  _root->nbDofs();
+	  _root->init();
+	  //Skeleton::show(_root,0);
   }
   _human = NULL;
   _skinning = NULL;
@@ -238,7 +240,7 @@ void Viewer::init()
   _skinning->_skin = _human;
   _skinning->_skel = _root;
   _skinning->init();
-  _skinning->paintWeights(jointNameCol);
+  //_skinning->paintWeights(jointNameCol);
 
 #if _SKINNING_GPU
   glewInit();
@@ -307,6 +309,7 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 {
 	QString filename;
 	char fname[600];
+	float coef = -1;
 	switch (e->key()) {
 	case Qt::Key_L:		// Load new mocap sequence
 		filename = QFileDialog::getOpenFileName(this, tr("Select a mocap sequence"), "data/", tr("Mocap (*.bvh);;All files (*)"));
@@ -314,7 +317,7 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 			if (_root) delete _root;
 			_root = NULL;
 			sprintf_s(fname, "%s", filename.toAscii().data());
-			_root = Skeleton::createFromFile(fname);
+			_root = Skeleton::createFromFile(fname,true);
 			if (_root) {
 				if (_root->_dofs.size())
 					_nframes = _root->_dofs[0]._values.size();
@@ -322,17 +325,48 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 					_nframes = 0;
 				_iframe = 0;
 				_root->nbDofs();
+				_root->init();
 			}
 			if (_skinning) {
 				_skinning->_skel = _root;
 				_skinning->recomputeWeights();
-				_skinning->paintWeights(jointNameCol);
+				if (_skinning->_skin->_colors.size()>0)
+					_skinning->paintWeights(jointNameCol);
+				_skinning->_keepAppling = true;
+				_skinning->_skin->_keepDrawing = true;
 			}
-			_skinning->_keepAppling = true;
-			_skinning->_skin->_keepDrawing = true;
 			animate();
 			updateGL();
 		}
+		break;
+	case Qt::Key_I:		// Load new mocap sequence
+		if (_root) delete _root;
+		_root = NULL;
+		while (coef > 1 || coef < 0) {
+			cout << "Entrer un coeficient entre 0 et 1.\n\t- 1 : walk\n\t- 0 : run" << endl;
+			cin >> coef;
+		}
+		_root = Skeleton::createNewAnimation(coef);
+		if (_root) {
+			if (_root->_dofs.size())
+				_nframes = _root->_dofs[0]._values.size();
+			else
+				_nframes = 0;
+			_iframe = 0;
+			_root->nbDofs();
+			_root->init();
+		}
+		if (_skinning) {
+			_skinning->_skel = _root;
+			_skinning->recomputeWeights();
+			if (_skinning->_skin->_colors.size()>0)
+				_skinning->paintWeights(jointNameCol);
+			_skinning->_keepAppling = true;
+			_skinning->_skin->_keepDrawing = true;
+		}
+		animate();
+		updateGL();
+		
 		break;
 		case Qt::Key_W :		// Modify computation of weights for skinning
 			if (!_skinning) return;

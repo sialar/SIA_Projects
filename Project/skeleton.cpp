@@ -1,10 +1,26 @@
 #include "skeleton.h"
 #include <skeletonIO.h>
 #include <qglviewer.h>
+#include <sstream>
 
 
 using namespace std;
 int Skeleton::nbJoints = 0;
+
+string tabulation(int level) {
+	stringstream s;
+	for (int i = 0; i < level; i++)
+		s << "\t";
+	return s.str();
+}
+void Skeleton::show(Skeleton* skel, int level) {
+	cout << tabulation(level) << skel->_name << endl;
+	cout << tabulation(level) << "_offset = (" << skel->_offX << ", " << skel->_offY << ", " << skel->_offZ << ")" << endl;
+	cout << tabulation(level) << "_curT = (" << skel->_curTx << ", " << skel->_curTy << ", " << skel->_curTz << ")" << endl;
+	cout << tabulation(level) << "_curR = (" << skel->_curRx << ", " << skel->_curRy << ", " << skel->_curRz << ")" << endl;
+	for (Skeleton* s : skel->_children)
+		show(s, level + 1);
+}
 
 Skeleton::Skeleton(Skeleton* s) {
 	_name = s->_name;				
@@ -26,22 +42,7 @@ Skeleton::Skeleton(Skeleton* s) {
 	_parent = new Skeleton(s->_parent);
 	_index = s->_index;
 }
-
-void Skeleton::testSkeletonCreation(Skeleton* s)
-{
-	cout << "Testing the skeleton creation ...\n";
-	cout << "Name = " << s->_name << endl;
-	cout << "Offset = (" << s->_offX << ", " << s->_offY << ", " << s->_offZ << ")" << endl;
-	cout << "The skeleton have (" << s->_dofs.size() << ") dofs:" << endl;
-	for (AnimCurve dof : s->_dofs)
-		cout << "\t- " << dof.name << " = " << dof._values.front() << ", ..., " << dof._values.back() << endl;
-	cout << "The skeleton have (" << s->_children.size() << ") children:" << endl;
-	for (Skeleton* sk : s->_children)
-		cout << "\t- " << sk->_name << endl;
-	if (s->_parent)
-		cout << "The skeleton parent is " << s->_parent->_name << endl;
-}
-Skeleton* Skeleton::createFromFile(const string fileName) {
+Skeleton* Skeleton::createFromFile(const string fileName, bool debug) {
 	bool                    is_load_success;
 	string                  motion_name;
 	vector<Skeleton*>       joints;
@@ -54,7 +55,8 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 	Skeleton*				joint = NULL;
 	Skeleton*				new_joint = NULL;
 
-	cout << "Loading from " << fileName << endl;
+	if (debug)	
+		cout << "Loading from " << fileName << endl;
 	ifstream file(fileName.data());
 
 	int iter = 0;
@@ -141,10 +143,12 @@ Skeleton* Skeleton::createFromFile(const string fileName) {
 
 		file.close();
 		is_load_success = true;
-		cout << "file loaded" << endl;
+		if (debug)
+			cout << "file loaded" << endl;
 	}
 	else {
-		cerr << "Failed to load the file " << fileName.data() << endl;
+		if (debug)
+			cerr << "Failed to load the file " << fileName.data() << endl;
 		fflush(stdout);
 	}
 	nbJoints = joints.size();
@@ -223,7 +227,16 @@ void Skeleton::draw()
 	}
 	glPopMatrix();
 }
-
+void Skeleton::init()
+{
+	// Update dofs :
+	_curTx = 0; _curTy = 0; _curTz = 0;
+	_curRx = 0; _curRy = 0; _curRz = 0;
+	// Animate children :
+	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
+		_children[ichild]->init();
+	}
+}
 void Skeleton::animate(int iframe) 
 {
 	// Update dofs :
@@ -485,24 +498,43 @@ glm::vec3 Skeleton::maxDistance(std::vector<glm::vec3>& vector)
 }
 
 void Skeleton::resizeDofs(int size) {
-	for (uint i = 0; i < _dofs.size(); i++)
+	for (uint i = 0; i < _dofs.size(); i++) {
+		_dofs[i]._values.clear();
 		_dofs[i]._values.resize(size);
+	}
 	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
 		_children[ichild]->resizeDofs(size);
 	}
 }
-
-void Skeleton::reduceVectorSize(std::vector<double> vec) {
-
+	
+void getJoints(Skeleton* skel, vector<Skeleton*>* joints) {
+	joints->push_back(skel);
+	for (unsigned int ichild = 0; ichild < skel->_children.size(); ichild++) {
+		getJoints(skel->_children[ichild], joints);
+	}
 }
-Skeleton* Skeleton::createNewAnimation() {
-	Skeleton* root1 = createFromFile("data/walk.bvh");
-	Skeleton* root2 = createFromFile("data/run.bvh");
-	int minDofsSize = min(root1->_dofs[0]._values.size(), root2->_dofs[0]._values.size());
-	cout << "min nb frames : " << minDofsSize << endl;
 
+void fill(Skeleton* s, Skeleton* s1, Skeleton* s2, float coef) {
+	for (int i = 0; i < s1->_dofs.size(); i++) {
+		for (int j = 0; j < s1->_dofs[i]._values.size(); j++) {
+			s->_dofs[i]._values[j] = coef*s1->_dofs[i]._values[j] + (1-coef) * s2->_dofs[i]._values[j];
+		}
+	}
+	for (unsigned int ichild = 0; ichild < s1->_children.size(); ichild++) {
+		fill(s->_children[ichild], s1->_children[ichild], s2->_children[ichild], coef);
+	}
+}
+
+Skeleton* Skeleton::createNewAnimation(float coef) {
+	Skeleton* root1 = createFromFile("data/walk.bvh",false);
+	Skeleton* root2 = createFromFile("data/run.bvh",false);
+	int minDofsSize = min(root1->_dofs[0]._values.size(), root2->_dofs[0]._values.size());
+
+	vector<Skeleton*> joints1, joints2;
+	getJoints(root1, &joints1);
+	getJoints(root2, &joints2);
 	Skeleton* newRoot = root1;
 	newRoot->resizeDofs(minDofsSize);
-
-	return root2;
+	fill(newRoot, root1, root2,coef);
+	return newRoot;
 }

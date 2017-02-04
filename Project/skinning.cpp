@@ -42,33 +42,6 @@ void Skinning::init() {
 	recomputeWeights();
 }
 
-void Skinning::recomputeWeights() {
-	if (_skin==NULL) return;
-	if (_skel==NULL) return;
-
-	// Compute weights :
-	switch (_meth)
-	{
-	case 0: 
-		cout << "loading weights\n";
-		loadWeights("data/skinning.txt"); 
-		break;
-	case 1: 
-		cout << "computing weights (skinning rigid)\n";
-		computeRigidWeights(); 
-		break;
-	case 2: 
-		cout << "computing weights (cylindric distance)\n";
-		computeCylindricWeights(); 
-		break;
-	default:
-		break;
-	}
-
-	// Test skinning :
-	animate();
-}
-
 void Skinning::getJoints(Skeleton *skel) {
 	_joints.push_back(skel);
 	for (unsigned int ichild = 0 ; ichild < skel->_children.size() ; ichild++) {
@@ -86,7 +59,6 @@ void Skinning::getBonesPos(Skeleton *skel, int *idx) {
 	pos/=(float)(skel->_children.size()+1);
 	_posBonesInit[i0] = glm::vec4(pos.x, pos.y, pos.z, 1.0);
 }
-
 void Skinning::computeTransfo(Skeleton *skel, int *idx) {
 	int i0 = (*idx);
 	glPushMatrix();
@@ -97,13 +69,6 @@ void Skinning::computeTransfo(Skeleton *skel, int *idx) {
 
 		float ptr[16];
 		glGetFloatv(GL_MODELVIEW_MATRIX, ptr);
-
-		/*
-		for (int i = 0; i < 16; i++)
-			cout << ptr[i] << " ";
-		cout << endl;
-		*/
-
 		for (int i = 0; i < 16; i++)
 			if (ptr[i] != ptr[i]) {
 				cout << "\nError: nan when calling glGetFloatv" << endl;
@@ -125,34 +90,239 @@ void Skinning::computeTransfo(Skeleton *skel, int *idx) {
 	glPopMatrix();
 	_transfoCurr[i0] = glm::transpose(_transfoCurr[i0]);
 }
+std::vector<int> Skinning::getChildrenIndex(int parentIndex) {
+	Skeleton* parent = _joints[parentIndex];
+	std::vector<int> childrenIndex;
+	for (Skeleton* child : parent->_children)
+		childrenIndex.push_back(child->_index);
+	return childrenIndex;
+}
 
+glm::vec3 Skinning::meanChildrenPos(int parentIndex) {
+	Skeleton* parent = _joints[parentIndex];
+	glm::vec3 res(0.0);
+	for (Skeleton* child : parent->_children)
+		res += glm::vec3(_posBonesInit[child->_index]);
+	res /= parent->_children.size();
+	return res;
+}
 
+int Skinning::closetChildIndex(int parentIndex) {
+	Skeleton* parent = _joints[parentIndex];
+	if (parent->_children.size()==0)
+		return -1;
+
+	Skeleton* closestChild = parent->_children[0];
+	glm::vec3 offset = glm::vec3(closestChild->_offX, closestChild->_offY, closestChild->_offZ);
+	double temp_offset, min_offset = glm::length(offset);
+	int closestChildIndex = closestChild->_index;
+	for (Skeleton* child : parent->_children) {
+		offset = glm::vec3(child->_offX, child->_offY, child->_offZ);
+		temp_offset = glm::length(offset);
+		if (temp_offset < min_offset) {
+			closestChild = child;
+			min_offset = temp_offset;
+			closestChildIndex = closestChild->_index;
+		}
+	}
+	return closestChildIndex;
+}
+int Skinning::closestBoneIndex(int vertex_index) {
+	int min_index = 0;
+	float min_dist = glm::distance(_posBonesInit[0], _pointsInit[vertex_index]);
+	for (int j = 1; j < _nbJoints; j++)
+	{
+		if (glm::distance(_posBonesInit[j], _pointsInit[vertex_index]) < min_dist)
+		{
+			min_index = j;
+			min_dist = glm::distance(_posBonesInit[j], _pointsInit[vertex_index]);
+		}
+	}
+	return min_index;
+}
+void Skinning::recomputeWeights() {
+	if (_skin == NULL) return;
+	if (_skel == NULL) return;
+
+	// Compute weights :
+	switch (_meth)
+	{
+	case 0:
+		cout << "loading weights\n";
+		loadWeights("data/skinning.txt");
+		break;
+	case 1:
+		cout << "computing weights (skinning rigid)\n";
+		computeRigidWeights();
+		break;
+	case 2:
+		cout << "computing weights (cylindric distance)\n";
+		computeCylindricWeights();
+		break;
+	default:
+		break;
+	}
+
+	// Test skinning :
+	animate();
+}
 void Skinning::computeRigidWeights() {
-	if (_skin==NULL) return;
-	if (_skel==NULL) return;
+	if (_skin == NULL) return;
+	if (_skel == NULL) return;
 
 	_weights.clear();
 	_weights.resize(_nbVtx);
 	for (int i = 0; i < _nbVtx; i++)
 		_weights[i].resize(_nbJoints);
 
+	int jointIndex = 0;
 	for (int i = 0; i < _nbVtx; i++)
 	{
-		int min_index = 0;
+		jointIndex = closestBoneIndex(i);
+		for (int j = 1; j < _nbJoints; j++)
+			_weights[i][j] = 0;
+		_weights[i][jointIndex] = 1;
+	}
+}
+
+void Skinning::computeCylindricWeights() {
+	if (_skin == NULL) return;
+	if (_skel == NULL) return;
+
+	_weights.resize(_nbVtx);
+	for (int i = 0; i < _nbVtx; i++)
+		_weights[i].resize(_nbJoints);
+
+	double p, d1, d2, wParent, wChild;
+	int jointIndex, childIndex;
+	glm::vec3 xA, xB, xI, x, u1, u2, offset;
+	Skeleton *child, * parent;
+	for (int i = 0; i < _nbVtx; i++)
+	{
+		// get closest joint
+		jointIndex = closestBoneIndex(i);
+		parent = _joints[jointIndex];
+
+		// initialisation
+		for (int j = 1; j < _nbJoints; j++)
+			_weights[i][j] = 0;
+
+
+		if (!_joints[jointIndex]->_name.compare("Site")) {
+			//cout << "is a site" << endl;
+			_weights[i][jointIndex] = 1;
+		} 
+		else {
+			// get nearest child
+			childIndex = closetChildIndex(jointIndex);
+			child = _joints[childIndex];
+			
+			x = glm::vec3(_pointsInit[i]);
+			offset = glm::vec3(child->_offX, child->_offY, child->_offZ);
+			if (glm::length(offset) == 0) {
+				_weights[i][jointIndex] = 1;
+			}
+			else {
+				xA = getPosition(jointIndex);
+				xB = meanChildrenPos(jointIndex);
+				u2 = xB - xA;
+				u1 = x - xA;
+				p = glm::dot(u1, u2) / pow(glm::length(u2), 2);
+				if (p < 0)
+					xI = xA;
+				else if (p > 1)
+					xI = xB;
+				else
+					xI = xA + float(p) * xB;
+				
+				d1 = glm::length(xA - xI);
+				d2 = glm::length(xB - xI);
+
+				wParent = d2 / (d1 + d2);
+				wChild = d1 / (d1 + d2);
+
+				_weights[i][jointIndex] = wParent;
+				_weights[i][childIndex] = wChild;
+				//vector<int> childrenIndex = getChildrenIndex(jointIndex);
+				//for (int k = 0; k < childrenIndex.size(); k++)
+				//	_weights[i][k] = wChild / childrenIndex.size();
+			}
+		}
+	}
+}
+/*
+void Skinning::computeCylindricWeights() {
+	if (_skin == NULL) return;
+	if (_skel == NULL) return;
+
+	_weights.resize(_nbVtx);
+	for (int i = 0; i < _nbVtx; i++)
+		_weights[i].resize(_nbJoints);
+
+	for (int i = 0; i < _nbVtx; i++)
+	{
+		//get the nearest joint
+		int index1 = 0;
 		float min_dist = glm::distance(_posBonesInit[0], _pointsInit[i]);
 		for (int j = 1; j < _nbJoints; j++)
 		{
 			_weights[i][j] = 0;
-			if (glm::distance(_posBonesInit[j], _pointsInit[i]) < min_dist)
-			{
-				min_index = j;
-				min_dist = glm::distance(_posBonesInit[j], _pointsInit[i]);
+			if ((*_joints[j])._children.size() > 0) {
+				glm::vec3 boneLength = glm::vec3((*(*_joints[j])._children[0])._offX, (*(*_joints[j])._children[0])._offY, (*(*_joints[j])._children[0])._offZ);
+				if (glm::length(boneLength) > 0.0001) {
+					if (glm::distance(_posBonesInit[j], _pointsInit[i]) < min_dist)
+					{
+						index1 = j;
+						min_dist = glm::distance(_posBonesInit[j], _pointsInit[i]);
+					}
+				}
 			}
 		}
-		_weights[i][min_index] = 1;
+		//get children of the joint
+		glm::vec3 position1 = glm::vec3(_joints[index1]->_offX, _joints[index1]->_offY, _joints[index1]->_offZ);
+		vector<Skeleton*> children_min = _joints[index1]->_children;
+		//get their indices
+		bool firstIteration = true;
+		double tempdist;
+		int index2;
+		glm::vec3 u;
+		glm::vec3 position2;
+		glm::vec3 position2temp;
+		glm::vec3 utemp;
+		for (vector<Skeleton*>::iterator s = children_min.begin(); s != children_min.end(); ++s) {
+			if (firstIteration) {
+				index2 = (**s)._index;
+				u = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
+				position2 = position1 + u;
+				min_dist = glm::distance(position2, glm::vec3(_pointsInit[i]));
+				firstIteration = false;
+			}
+			else {
+				utemp = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
+				position2temp = position1 + utemp;
+				tempdist = glm::distance(position2temp, glm::vec3(_pointsInit[i]));
+				if (tempdist < min_dist) {
+					min_dist = tempdist;
+					index2 = (**s)._index;
+					u = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
+				}
+			}
+		}
+		// calculer les poids de skinning
+		float projPoint = -glm::dot(glm::vec3(_pointsInit[i]), u) / glm::length(u);
+		float projFils = -glm::dot(position2, u) / glm::length(u);
+		float projPere = -glm::dot(position1, u) / glm::length(u);
+		float d1 = 1 / (projPoint - projFils);
+		float d2 = 1 / (projPere - projPoint);
+		float n = d1 + d2;
+		_weights[i][index2] = d1 / n;
+		_weights[i][index1] = d2 / n;
+		if (_weights[i][index2] + _weights[i][index1] - 1 > 0.0001)
+			cout << "probleme dans les coordonnees cyl " << _weights[i][index2] + _weights[i][index1] << endl;
+
 	}
 }
-
+*/
 void Skinning::loadWeights(std::string filename) {
 	_weights.clear();
 	_weights.resize(_nbVtx);
@@ -219,7 +389,6 @@ void Skinning::animate() {
 	applySkinning();
 #endif
 }
-
 void Skinning::applySkinning() {
 	if (!_keepAppling) return;
 	for (int i = 0; i < _nbVtx; i++) {
@@ -230,121 +399,12 @@ void Skinning::applySkinning() {
 	}
 }
 
-
-glm::vec3 Skinning::toVec3(glm::vec4 v) {
-	return glm::vec3(v.x, v.y, v.z);
-}
-
 glm::vec3 Skinning::getPosition(int index) {
-	glm::vec3 result(0);
 	Skeleton* skel = _joints[index];
-	result = result + glm::vec3((*skel)._offX, (*skel)._offY, (*skel)._offZ);
-	while ((*skel)._parent != NULL) {
-		skel = (*skel)._parent;
-		result = result + glm::vec3((*skel)._offX, (*skel)._offY, (*skel)._offZ);
+	glm::vec3 result(skel->_offX, skel->_offY, skel->_offZ);
+	while (skel->_parent) {
+		skel = skel->_parent;
+		result += glm::vec3(skel->_offX, skel->_offY, skel->_offZ);
 	}
 	return result;
-}
-
-
-void Skinning::computeCylindricWeights() {
-	if (_skin == NULL) return;
-	if (_skel == NULL) return;
-
-	_weights.resize(_nbVtx);
-	for (int i = 0; i < _nbVtx; i++)
-		_weights[i].resize(_nbJoints);
-
-	for (int i = 0; i < _nbVtx; i++)
-	{
-		//get the nearest joint
-		int index1 = 0;
-		float min_dist = glm::distance(_posBonesInit[0], _pointsInit[i]);
-		
-		//vérification des enfants de l'os 0
-		bool nonZeroChild = false;
-		for (vector<Skeleton*>::iterator s = (*_joints[0])._children.begin(); s != (*_joints[0])._children.end(); ++s) {
-			glm::vec3 boneLength = glm::vec3((*(**s)._children[0])._offX, (*(**s)._children[0])._offY, (*(**s)._children[0])._offZ);
-			nonZeroChild = nonZeroChild || (glm::length(boneLength) > 0.0001);
-		}
-		if(!nonZeroChild){
-		cout << "enfant 0 : " << nonZeroChild << endl;
-		}
-
-		for (int j = 1; j < _nbJoints; j++)
-		{
-			_weights[i][j] = 0;
-			if ((*_joints[j])._children.size() > 0) {
-				nonZeroChild = false;
-				glm::vec3 boneLength;
-				for (vector<Skeleton*>::iterator s = (*_joints[j])._children.begin(); s != (*_joints[j])._children.end(); ++s) {
-					boneLength = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
-					nonZeroChild = nonZeroChild || (glm::length(boneLength) > 0.0001);
-				}
-				if(nonZeroChild){
-					if (glm::distance(_posBonesInit[j], _pointsInit[i]) < min_dist)
-					{
-						index1 = j;
-						min_dist = glm::distance(_posBonesInit[j], _pointsInit[i]);
-					}
-				}
-			}
-		}
-
-		//get children of the joint
-		glm::vec3 position1 = glm::vec3(_joints[index1]->_offX, _joints[index1]->_offY, _joints[index1]->_offZ);
-		vector<Skeleton*> children_min = _joints[index1]->_children;
-		//get their indices
-		bool firstIteration = true;
-		double tempdist;
-		int index2;
-		glm::vec3 u;
-		glm::vec3 position2;
-		glm::vec3 position2temp;
-		glm::vec3 utemp;
-		for (vector<Skeleton*>::iterator s = children_min.begin(); s != children_min.end(); ++s) {
-			if (firstIteration) {
-				index2 = (**s)._index;
-				u = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
-				position2 = position1 + u;
-				min_dist = glm::distance(position2, toVec3(_pointsInit[i]));
-				if (glm::length(u) > 0.0001) {
-					firstIteration = false;
-				}
-				else {
-					cout << "u nul premiere iteration" << endl;
-					cout << "id : " << (**s)._index << endl;
-				}
-			}
-			else {
-				utemp = glm::vec3((**s)._offX, (**s)._offY, (**s)._offZ);
-				position2temp = position1 + utemp;
-				tempdist = glm::distance(position2temp, toVec3(_pointsInit[i]));
-				if (tempdist < min_dist && glm::length(utemp) > 0.0001) {
-					min_dist = tempdist;
-					index2 = (**s)._index;
-					u = utemp;
-				}
-				else if (glm::length(utemp) < 0.0001) {
-					cout << "u nul" << endl;
-					cout << "id : " << (**s)._index << endl;
-				}
-			}
-		}
-		if (glm::length(u) < 0.0001) {
-			cout << glm::length(u) << endl;
-		}
-		// calculer les poids de skinning
-		float projPoint = - glm::dot(toVec3(_pointsInit[i]), u) / glm::length(u);
-		float projFils = - glm::dot(position2, u) / glm::length(u);
-		float projPere = - glm::dot(position1, u) / glm::length(u);
-		float d1 = 1 / (projPoint - projFils);
-		float d2 = 1 / (projPere - projPoint);
-		float n = d1 + d2;
-		_weights[i][index2] = d1 / n;
-		_weights[i][index1] = d2 / n;
-		if (_weights[i][index2] + _weights[i][index1] - 1 > 0.0001)
-			cout << "probleme dans les coordonnees cyl " << _weights[i][index2] + _weights[i][index1] << endl;
-
-	}
 }
