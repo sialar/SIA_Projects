@@ -216,7 +216,6 @@ void Viewer::init()
   // Load skeleton :
   _root = NULL;
   _root = Skeleton::createFromFile("data/walk.bvh",true);
-  _root = Skeleton::createNewAnimation(1);
   if (_root) {
 	  if (_root->_dofs.size())
 		  _nframes = _root->_dofs[0]._values.size();
@@ -346,7 +345,7 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 			cout << "Entrer un coeficient entre 0 et 1.\n\t- 1 : walk\n\t- 0 : run" << endl;
 			cin >> coef;
 		}
-		_root = Skeleton::createNewAnimation(coef);
+		_root = Skeleton::createNewAnimationVersion0(coef);
 		if (_root) {
 			if (_root->_dofs.size())
 				_nframes = _root->_dofs[0]._values.size();

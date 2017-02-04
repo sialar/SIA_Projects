@@ -51,8 +51,6 @@ public:
 	int _index;
 
 public:
-	static int nbJoints;
-
 	// Constructor :
 	Skeleton() {};
 	Skeleton(Skeleton* s);
@@ -105,7 +103,8 @@ public:
 	void computeAxisAngles();
 
 	void resizeDofs(int size);
-	static Skeleton* createNewAnimation(float coef);
+	static Skeleton* createNewAnimationVersion0(float coef);
+	static Skeleton* createNewAnimationVersion1(float coef);
 };
 
 #endif

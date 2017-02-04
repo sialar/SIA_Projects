@@ -5,7 +5,6 @@
 
 
 using namespace std;
-int Skeleton::nbJoints = 0;
 
 string tabulation(int level) {
 	stringstream s;
@@ -151,7 +150,6 @@ Skeleton* Skeleton::createFromFile(const string fileName, bool debug) {
 			cerr << "Failed to load the file " << fileName.data() << endl;
 		fflush(stdout);
 	}
-	nbJoints = joints.size();
 	return joints[0];
 }
 
@@ -515,29 +513,39 @@ void getJoints(Skeleton* skel, vector<Skeleton*>* joints) {
 }
 
 void fill(Skeleton* s, Skeleton* s1, Skeleton* s2, float coef) {
-	for (int i = 0; i < s1->_dofs.size(); i++) {
-		for (int j = 0; j < s1->_dofs[i]._values.size(); j++) {
-			s->_dofs[i]._values[j] = coef*s1->_dofs[i]._values[j] + (1-coef) * s2->_dofs[i]._values[j];
-		}
+	int min;
+	for (int i = 0; i < s2->_dofs.size(); i++) {
+		min = std::min(s2->_dofs[i]._values.size(), s1->_dofs[i]._values.size());
+		for (int j = 0; j < min; j++)
+			s->_dofs[i]._values[j] = coef*s2->_dofs[i]._values[j] +(1 - coef) * s1->_dofs[i]._values[j];
 	}
 	for (unsigned int ichild = 0; ichild < s1->_children.size(); ichild++) {
 		fill(s->_children[ichild], s1->_children[ichild], s2->_children[ichild], coef);
 	}
 }
 
-Skeleton* Skeleton::createNewAnimation(float coef) {
-	Skeleton* root1 = createFromFile("data/walk.bvh",false);
-	Skeleton* root2 = createFromFile("data/run.bvh",false);
-	int minDofsSize = min(root1->_dofs[0]._values.size(), root2->_dofs[0]._values.size());
+Skeleton* Skeleton::createNewAnimationVersion0(float coef) {
+	Skeleton* root1 = createFromFile("data/walk.bvh", false);
+	Skeleton* root2 = createFromFile("data/run.bvh", false);
 
 	vector<Skeleton*> joints1, joints2;
 	getJoints(root1, &joints1);
 	getJoints(root2, &joints2);
 	Skeleton* newRoot = root1;
-	newRoot->resizeDofs(minDofsSize);
-	fill(newRoot, root1, root2,coef);
+
+	fill(newRoot, root1, root2, coef);
 	return newRoot;
 }
+Skeleton* Skeleton::createNewAnimationVersion1(float coef) {
+	Skeleton* root1 = createFromFile("data/walk.bvh", false);
+	Skeleton* root2 = createFromFile("data/run.bvh", false);
 
+	vector<Skeleton*> joints1, joints2;
+	getJoints(root1, &joints1);
+	getJoints(root2, &joints2);
+	Skeleton* newRoot = root1;
 
+	fill(newRoot, root1, root2, coef);
+	return newRoot;
+}
 
