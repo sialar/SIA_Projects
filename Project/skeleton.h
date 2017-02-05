@@ -11,9 +11,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include<glm/gtc/quaternion.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include <QGLViewer/quaternion.h>
 
 class AnimCurve {
 public:
@@ -53,7 +54,6 @@ public:
 public:
 	// Constructor :
 	Skeleton() {};
-	Skeleton(Skeleton* s);
 	// Destructor :
 	~Skeleton() {
 		_dofs.clear();
@@ -82,6 +82,7 @@ public:
 	// Load from file (.bvh) :	
 	static Skeleton* createFromFile(std::string fileName, bool debug);
 	static void show(Skeleton* skel, int level);
+	void copy(Skeleton* s);
 
 
 	// Viewer methods :
@@ -95,16 +96,20 @@ public:
 	static void matrixToQuaternion(glm::mat3 R, qglviewer::Quaternion *q);
 	static void quaternionToAxisAngle(qglviewer::Quaternion q, qglviewer::Vec *vaa);
 	static void eulerToAxisAngle(double rx, double ry, double rz, int rorder, qglviewer::Vec *vaa);
+	static glm::vec3 quaternionToEulerAngle(const glm::quat& q);
 	void nbDofs();
 
 	// Intermediate Functions
 	static glm::vec3 maxDistance(std::vector<glm::vec3>& vector);
 	int computeNbDofs(double threshold);
 	void computeAxisAngles();
+	glm::quat eulerToQuaternionOfDofs(int frame);
+	void getEulerAnglesFromQuat(const glm::quat& q, int frame, Skeleton* s1, Skeleton* s2);
 
 	void resizeDofs(int size);
 	static Skeleton* createNewAnimationVersion0();
 	static Skeleton* createNewAnimationVersion1();
+	static Skeleton* createNewAnimationVersion2();
 };
 
 #endif

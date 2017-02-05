@@ -342,14 +342,16 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 	case Qt::Key_I:		// Load new mocap sequence
 		if (_root) delete _root;
 		_root = NULL;
-		while (version != 1 && version != 0) {
-			cout << "Choisir la version de l'animation (0 ou 1)" << endl;
+		while (version != 1 && version != 0 && version != 2) {
+			cout << "Choisir la version de l'animation (0, 1 ou 2)" << endl;
 			cin >> version;
 		}
 		if (version==0)
 			_root = Skeleton::createNewAnimationVersion0();
 		else if (version == 1)
 			_root = Skeleton::createNewAnimationVersion1();
+		else if (version == 2)
+			_root = Skeleton::createNewAnimationVersion2();
 
 		if (_root) {
 			if (_root->_dofs.size())
