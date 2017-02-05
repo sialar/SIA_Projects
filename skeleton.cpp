@@ -1,28 +1,13 @@
 #include "skeleton.h"
 #include <skeletonIO.h>
 #include <qglviewer.h>
-#include <sstream>
 
 
 using namespace std;
+int Skeleton::nbJoints = 0;
 
-string tabulation(int level) {
-	stringstream s;
-	for (int i = 0; i < level; i++)
-		s << "\t";
-	return s.str();
-}
-void Skeleton::show(Skeleton* skel, int level) {
-	cout << tabulation(level) << skel->_name << endl;
-	cout << tabulation(level) << "_offset = (" << skel->_offX << ", " << skel->_offY << ", " << skel->_offZ << ")" << endl;
-	cout << tabulation(level) << "_curT = (" << skel->_curTx << ", " << skel->_curTy << ", " << skel->_curTz << ")" << endl;
-	cout << tabulation(level) << "_curR = (" << skel->_curRx << ", " << skel->_curRy << ", " << skel->_curRz << ")" << endl;
-	for (Skeleton* s : skel->_children)
-		show(s, level + 1);
-}
-
-void Skeleton::copy(Skeleton* s) {
-	_name = s->_name;
+Skeleton::Skeleton(Skeleton* s) {
+	_name = s->_name;				
 	_offX = s->_offX;						
 	_offY = s->_offY;						
 	_offZ = s->_offZ;	
@@ -35,14 +20,28 @@ void Skeleton::copy(Skeleton* s) {
 	_curRz = s->_curRz;					
 	_rorder = s->_rorder;				
 	_children.resize(s->_children.size());
-	for (uint i = 0; i < s->_children.size(); i++) {
-		_children[i] = new Skeleton();
-		_children[i]->_parent = this;
-		_children[i]->copy(s->_children[i]);
-	}
+	for (uint i = 0; i < s->_children.size(); i++)
+		_children[i] = new Skeleton(s->_children[i]);
+
+	_parent = new Skeleton(s->_parent);
 	_index = s->_index;
 }
-Skeleton* Skeleton::createFromFile(const string fileName, bool debug) {
+
+void Skeleton::testSkeletonCreation(Skeleton* s)
+{
+	cout << "Testing the skeleton creation ...\n";
+	cout << "Name = " << s->_name << endl;
+	cout << "Offset = (" << s->_offX << ", " << s->_offY << ", " << s->_offZ << ")" << endl;
+	cout << "The skeleton have (" << s->_dofs.size() << ") dofs:" << endl;
+	for (AnimCurve dof : s->_dofs)
+		cout << "\t- " << dof.name << " = " << dof._values.front() << ", ..., " << dof._values.back() << endl;
+	cout << "The skeleton have (" << s->_children.size() << ") children:" << endl;
+	for (Skeleton* sk : s->_children)
+		cout << "\t- " << sk->_name << endl;
+	if (s->_parent)
+		cout << "The skeleton parent is " << s->_parent->_name << endl;
+}
+Skeleton* Skeleton::createFromFile(const string fileName) {
 	bool                    is_load_success;
 	string                  motion_name;
 	vector<Skeleton*>       joints;
@@ -55,8 +54,7 @@ Skeleton* Skeleton::createFromFile(const string fileName, bool debug) {
 	Skeleton*				joint = NULL;
 	Skeleton*				new_joint = NULL;
 
-	if (debug)	
-		cout << "Loading from " << fileName << endl;
+	cout << "Loading from " << fileName << endl;
 	ifstream file(fileName.data());
 
 	int iter = 0;
@@ -143,14 +141,13 @@ Skeleton* Skeleton::createFromFile(const string fileName, bool debug) {
 
 		file.close();
 		is_load_success = true;
-		if (debug)
-			cout << "file loaded" << endl;
+		cout << "file loaded" << endl;
 	}
 	else {
-		if (debug)
-			cerr << "Failed to load the file " << fileName.data() << endl;
+		cerr << "Failed to load the file " << fileName.data() << endl;
 		fflush(stdout);
 	}
+	nbJoints = joints.size();
 	return joints[0];
 }
 
@@ -226,16 +223,7 @@ void Skeleton::draw()
 	}
 	glPopMatrix();
 }
-void Skeleton::init()
-{
-	// Update dofs :
-	_curTx = 0; _curTy = 0; _curTz = 0;
-	_curRx = 0; _curRy = 0; _curRz = 0;
-	// Animate children :
-	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
-		_children[ichild]->init();
-	}
-}
+
 void Skeleton::animate(int iframe) 
 {
 	// Update dofs :
@@ -408,7 +396,8 @@ void Skeleton::nbDofs() {
 
 	nbDofsR = computeNbDofs(tol);
 	//cout << _name << " : " << nbDofsR << endl;// " degree(s) of freedom in rotation\n";
-	// Propagate to children :
+
+											  // Propagate to children :
 	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
 		_children[ichild]->nbDofs();
 	}
@@ -455,6 +444,7 @@ int Skeleton::computeNbDofs(double threshold)
 	}*/
 	return 2;
 }
+
 void Skeleton::computeAxisAngles()
 {
 	double x = 0, y = 0, z = 0;
@@ -469,8 +459,8 @@ void Skeleton::computeAxisAngles()
 				y = _dofs[j]._values[i];
 			if (!_dofs[j].name.compare("Zrotation"))
 				z = _dofs[j]._values[i];
+			eulerAngles.push_back(glm::vec3(x, y, z));
 		}
-		eulerAngles.push_back(glm::vec3(x, y, z));
 		eulerToAxisAngle(x, y, z, _rorder, &vaa);
 		rotationAxis.push_back(glm::vec3(vaa[0], vaa[1], vaa[2]));
 	}
@@ -495,235 +485,24 @@ glm::vec3 Skeleton::maxDistance(std::vector<glm::vec3>& vector)
 }
 
 void Skeleton::resizeDofs(int size) {
-	for (uint i = 0; i < _dofs.size(); i++) {
-		_dofs[i]._values.clear();
+	for (uint i = 0; i < _dofs.size(); i++)
 		_dofs[i]._values.resize(size);
-	}
 	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
 		_children[ichild]->resizeDofs(size);
 	}
 }
-	
-void getJoints(Skeleton* skel, vector<Skeleton*>* joints) {
-	joints->push_back(skel);
-	for (unsigned int ichild = 0; ichild < skel->_children.size(); ichild++) {
-		getJoints(skel->_children[ichild], joints);
-	}
-}
 
-double compareDofs(Skeleton* s1, Skeleton* s2, int frame1, int frame2, double tol) {
-	double mean = 0;
-	for (uint i = 0; i < s1->_dofs.size(); i++) 
-		mean += std::abs(s1->_dofs[i]._values[frame1] - s2->_dofs[i]._values[frame2]);
-	
-	mean /= s1->_dofs.size();
-	return mean ;
-}
-
-void findAllignNumberI(vector<Skeleton*> joints1, vector<Skeleton*> joints2, int k, int* i1, int* i2, double tol) {
-	int target = 0, n = 0, nbSite = joints1.size();
-	double mean = 0;
-	int nbFrames = std::min(joints1[0]->_dofs[0]._values.size(), joints2[0]->_dofs[0]._values.size());
-	for (int t1=0; t1<nbFrames;t1++) {
-		for (int t2 = 0; t2 < nbFrames; t2++) {
-			n = 0;
-			mean = 0;
-			for (uint iskel = 0; iskel < joints1.size(); iskel++) {
-				if (joints1[iskel]->_dofs.size()>0 && joints1[iskel]->_dofs.size()>0) {
-					nbSite--;
-					mean += compareDofs(joints1[iskel], joints2[iskel], t1, t2, tol);
-				}
-			}
-			mean /= joints1.size() - nbSite;
-			if (mean < tol) {
-				*i1 = t1;
-				*i2 = t2;
-				target++;
-				if (target == k)
-					return;
-			}
-		}
-	}
-}
-
-glm::vec3 Skeleton::quaternionToEulerAngle(const glm::quat& q)
-{
-	float pitch = glm::pitch(q);
-	float yaw = glm::yaw(q);
-	float roll = glm::roll(q);
-	glm::vec3 eulerAngle = glm::vec3(pitch, yaw, roll);
-	eulerAngle /= M_PI / 180.0;
-	return eulerAngle;
-}
-
-glm::quat Skeleton::eulerToQuaternionOfDofs(int frame) {
-	glm::vec3 eulerAngle = eulerAngles[frame];
-	glm::mat3 R;
-	//cout << eulerAngles[0].x << " " << eulerAngles[0].y << " " << eulerAngles[0].z << endl;
-	eulerAngle *= M_PI / 180.0;
-	return glm::quat(glm::vec3(eulerAngle.x, eulerAngle.y, eulerAngle.z));
-}
-void Skeleton::getEulerAnglesFromQuat(const glm::quat& q, int frame, Skeleton* s1, Skeleton* s2) {
-	glm::vec3 euler = quaternionToEulerAngle(q);
-	for (uint i = 0; i < _dofs.size(); i++) {
-		//_dofs[i]._values[frame] = 0.5*s2->_dofs[i]._values[frame] + (1 - 0.5) * s1->_dofs[i]._values[frame];
-		if (!_dofs[i].name.compare("Xrotation"))
-			_dofs[i]._values[frame] = euler.x;
-		if (!_dofs[i].name.compare("Yrotation"))
-			_dofs[i]._values[frame] = euler.y;
-		if (!_dofs[i].name.compare("Zrotation"))
-			_dofs[i]._values[frame] = euler.z;
-	}
-}
-
-void fill(Skeleton* s, Skeleton* s1, Skeleton* s2, int i1, int i2, float coef, int version) {
-	int min;
-	glm::quat quat1, quat2, quatRes;
-	glm::vec3 euler;
-
-	switch (version) {
-		
-		/************************ Version 0 ***************************/
-		case 0:
-			for (uint i = 0; i < s2->_dofs.size(); i++) {
-				min = std::min(s2->_dofs[i]._values.size(), s1->_dofs[i]._values.size());
-				for (int j = 0; j < min; j++)
-					s->_dofs[i]._values[j] = (1-coef) *s2->_dofs[i]._values[j] + (coef) * s1->_dofs[i]._values[j];
-			}
-			for (unsigned int ichild = 0; ichild < s1->_children.size(); ichild++)
-				fill(s->_children[ichild], s1->_children[ichild], s2->_children[ichild], i1, i2, coef, version);
-			break;
-		
-		/************************ Version 1 ***************************/
-		case 1:
-			for (uint i = 0; i < s2->_dofs.size(); i++) {
-				min = std::min(s2->_dofs[i]._values.size(), s1->_dofs[i]._values.size());
-				for (int j = 0; j < i2; j++)
-					s->_dofs[i]._values[j] = s1->_dofs[i]._values[j];
-				for (int j = i2; j < min; j++)
-					s->_dofs[i]._values[j] = (1 - coef) *s2->_dofs[i]._values[j + i1 - i2] + coef * s1->_dofs[i]._values[j];
-			}
-			for (unsigned int ichild = 0; ichild < s1->_children.size(); ichild++)
-				fill(s->_children[ichild], s1->_children[ichild], s2->_children[ichild], i1, i2, coef, version);
-			break;
-		
-		/************************ Version 2 ***************************/
-		case 2:
-			if (s1->_dofs.size() > 0 && s2->_dofs.size() > 0) {
-				min = std::min(s2->_dofs[0]._values.size(), s1->_dofs[0]._values.size());
-				for (uint i = 0; i < s->_dofs.size(); i++) {
-					if (!s->_dofs[i].name.compare("Xposition") || !s->_dofs[i].name.compare("Yposition")
-						|| !s->_dofs[i].name.compare("Zposition")) {
-						for (int j = 0; j < min; j++)
-							s->_dofs[i]._values[j] = s1->_dofs[i]._values[j];// +(1 - coef) * s1->_dofs[i]._values[j];
-					}
-				}
-				s1->computeAxisAngles();
-				s2->computeAxisAngles();
-				for (int j = 0; j < min; j++) {
-					quat1 = s1->eulerToQuaternionOfDofs(j);
-					quat2 = s2->eulerToQuaternionOfDofs(j);
-					quatRes = glm::mix(quat1, quat2, 1-coef);
-					s->getEulerAnglesFromQuat(quatRes,j,s1,s2);
-					if (j < 0) {
-						cout << quat1[0] << " " << quat1[1] << " " << quat1[2] << " " << quat1[3] << endl;
-						cout << quat2[0] << " " << quat2[1] << " " << quat2[2] << " " << quat2[3] << endl;
-						cout << quatRes[0] << " " << quatRes[1] << " " << quatRes[2] << " " << quatRes[3] << endl;
-
-						cout << s1->_dofs[2]._values[j] << " " << s1->_dofs[1]._values[j] << " " << s1->_dofs[0]._values[j] << endl;
-						cout << s2->_dofs[2]._values[j] << " " << s2->_dofs[1]._values[j] << " " << s2->_dofs[0]._values[j] << endl;
-						cout << s->_dofs[2]._values[j] << " " << s->_dofs[1]._values[j] << " " << s->_dofs[0]._values[j] << endl << endl;
-					}
-				}
-
-				for (unsigned int ichild = 0; ichild < s1->_children.size(); ichild++)
-					fill(s->_children[ichild], s1->_children[ichild], s2->_children[ichild], i1, i2, coef, version);
-			}
-			
-	break;
-	}
+void Skeleton::reduceVectorSize(std::vector<double> vec) {
 
 }
-
-Skeleton* Skeleton::createNewAnimationVersion0() {
-	float coef = -1;
-	while (coef > 1 || coef < 0) {
-		cout << "Entrer un coeficient entre 0 et 1.\n\t- 1 : walk\n\t- 0 : run" << endl;
-		cin >> coef;
-	}
-
-	Skeleton* root1 = createFromFile("data/walk.bvh", false);
-	Skeleton* root2 = createFromFile("data/run.bvh", false);
-
+Skeleton* Skeleton::createNewAnimation() {
+	Skeleton* root1 = createFromFile("data/walk.bvh");
+	Skeleton* root2 = createFromFile("data/run.bvh");
 	int minDofsSize = min(root1->_dofs[0]._values.size(), root2->_dofs[0]._values.size());
-	
-	vector<Skeleton*> joints1, joints2;
-	getJoints(root1, &joints1);
-	getJoints(root2, &joints2);
-	
-	Skeleton* newRoot = new Skeleton();
-	newRoot->copy(root1);
+	cout << "min nb frames : " << minDofsSize << endl;
+
+	Skeleton* newRoot = root1;
 	newRoot->resizeDofs(minDofsSize);
 
-	fill(newRoot, root1, root2, 0, 0, coef,0);
-	return newRoot;
-}
-
-Skeleton* Skeleton::createNewAnimationVersion1() {
-	Skeleton* root1 = createFromFile("data/walk.bvh", false);
-	Skeleton* root2 = createFromFile("data/run.bvh", false);
-
-	float coef = -1;
-	while (coef > 1 || coef < 0) {
-		cout << "Entrer un coeficient entre 0 et 1.\n\t- 1 : walk\n\t- 0 : run" << endl;
-		cin >> coef;
-	}
-	int minDofsSize = min(root1->_dofs[0]._values.size(), root2->_dofs[0]._values.size());
-
-	vector<Skeleton*> joints1, joints2;
-	getJoints(root1, &joints1);
-	getJoints(root2, &joints2);
-
-	Skeleton* newRoot = new Skeleton();
-	newRoot->copy(root1);
-	newRoot->resizeDofs(minDofsSize);
-
-	int i1 = -1, i2 = -1;
-	findAllignNumberI(joints1, joints2, 100, &i1, &i2, 10e-4);
-
-	fill(newRoot, root1, root2, i1, i2, coef, 1);
-	return newRoot;
-}
-
-Skeleton* Skeleton::createNewAnimationVersion2() {
-	Skeleton* root1 = createFromFile("data/walk.bvh", false);
-	Skeleton* root2 = createFromFile("data/run.bvh", false);
-
-	float coef = -1;
-	while (coef > 1 || coef < 0) {
-		cout << "Entrer un coeficient entre 0 et 1.\n\t- 1 : walk\n\t- 0 : run" << endl;
-		cin >> coef;
-	}
-	int minDofsSize = min(root1->_dofs[0]._values.size(), root2->_dofs[0]._values.size());
-	vector<Skeleton*> joints1, joints2;
-	getJoints(root1, &joints1);
-
-
-	getJoints(root2, &joints2);
-	Skeleton* newRoot = new Skeleton();
-	newRoot->copy(root1);
-	newRoot->resizeDofs(minDofsSize);
-	/*
-	glm::vec3 eulerAngle(0.4f, 0.5f, 0.3f);
-	float pitch = glm::pitch(glm::quat(glm::vec3(eulerAngle.x, eulerAngle.y, eulerAngle.z)));
-	float yaw = glm::yaw(glm::quat(glm::vec3(eulerAngle.x, eulerAngle.y, eulerAngle.z)));
-	float roll = glm::roll(glm::quat(glm::vec3(eulerAngle.x, eulerAngle.y, eulerAngle.z)));
-
-	glm::vec3 v(pitch,yaw,roll);
-
-	cout << eulerAngle.x << " " << eulerAngle.y << " " << eulerAngle.z << endl;
-	cout << v.x << " " << v.y << " " << v.z << endl;
-	*/
-	fill(newRoot, root1, root2, 0, 0, coef, 2);
-	return newRoot;
+	return root2;
 }

@@ -408,5 +408,3 @@ glm::vec3 Skinning::getPosition(int index) {
 	}
 	return result;
 }
-
-
