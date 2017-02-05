@@ -374,12 +374,17 @@ void Viewer::keyPressEvent(QKeyEvent *e)
 		updateGL();
 		
 		break;
-		case Qt::Key_W :		// Modify computation of weights for skinning
+		case Qt::Key_W:		// Modify computation of weights for skinning
 			if (!_skinning) return;
-			_skinning->_meth = (_skinning->_meth+1)%_skinning->_nbMeth;
+			_skinning->_meth = (_skinning->_meth + 1) % _skinning->_nbMeth;
 			_skinning->recomputeWeights();
-			if (_skinning->_skin->_colors.size())
-				_skinning->paintWeights(jointNameCol);
+			//if (_skinning->_skin->_colors.size())
+			_skinning->paintWeights(jointNameCol);
+			updateGL();
+			break;
+		case Qt::Key_C:		
+			if (!_skinning) return;
+			_skinning->_skin->initColor();
 			updateGL();
 			break;
 		case Qt::Key_Escape :	// quit

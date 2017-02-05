@@ -8,7 +8,7 @@ void Mesh::draw()
 {
 	if (!_keepDrawing) return;
 	bool normalsOk = (_normals.size()==_points.size());
-	bool colorsOk = (_colors.size()==_points.size());
+	bool colorsOk = (_colors.size() == _points.size());
 	glEnable(GL_NORMALIZE);
 	glColor4f(_color.x, _color.y, _color.z, _color.w);
 	switch (_nbEdges) {
@@ -16,7 +16,7 @@ void Mesh::draw()
 			glBegin(GL_TRIANGLES);
 			for (unsigned int i = 0 ; i < _triangles.size() ; i++) {
 				if (normalsOk) glNormal3f(_normals[_triangles[i]].x,_normals[_triangles[i]].y,_normals[_triangles[i]].z);
-				if (colorsOk) glColor3f(_colors[_triangles[i]].x,_colors[_triangles[i]].y,_colors[_triangles[i]].z);
+				if (colorsOk) glColor3f(_colors[_triangles[i]].x, _colors[_triangles[i]].y, _colors[_triangles[i]].z);
 				glVertex3f(_points[_triangles[i]].x,_points[_triangles[i]].y,_points[_triangles[i]].z);
 			}
 			glEnd();

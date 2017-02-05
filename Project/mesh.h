@@ -11,6 +11,7 @@ public :
 	std::vector<glm::vec4> _points;						// vertices
 	std::vector<glm::vec3> _normals;					// normals per point
 	std::vector<glm::vec4> _colors;						// colors per point
+	std::vector<glm::vec4> _colors0;						// colors per point
 	std::vector<std::vector<unsigned int>> _faces;	// faces[i] = list of vertex indices of face i
 	std::vector<unsigned int> _triangles;			// list of vertex indices : triangles[3*i] triangles[3*i+1] triangles[3*i+2] define a face
 
@@ -32,7 +33,10 @@ public:
 		_triangles.clear();
 	}
 
-	
+	void initColor() {
+		for (int i = 0; i < int(_colors.size()); i++)
+			_colors[i] = _color;
+	}
 	void load(const char* fileName);
 
 	void setColor(glm::vec4 col) { _color = col; };

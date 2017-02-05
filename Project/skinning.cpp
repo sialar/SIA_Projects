@@ -368,8 +368,10 @@ void Skinning::paintWeights(std::string jointName) {
 		jointIndex++;
 	_skin->_colors.resize(_skin->_points.size());
 
-	for (int i = 0; i < _nbVtx; i++)
+	for (int i = 0; i < _nbVtx; i++) {
+		_skin->_colors[i] = glm::vec4(0);
 		_skin->_colors[i].x = _weights[i][jointIndex];
+	}
 }
 
 void Skinning::animate() {
