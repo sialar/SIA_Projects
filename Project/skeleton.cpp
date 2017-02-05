@@ -5,7 +5,6 @@
 
 
 using namespace std;
-int Skeleton::nbJoints = 0;
 
 string tabulation(int level) {
 	stringstream s;
@@ -151,7 +150,6 @@ Skeleton* Skeleton::createFromFile(const string fileName, bool debug) {
 			cerr << "Failed to load the file " << fileName.data() << endl;
 		fflush(stdout);
 	}
-	nbJoints = joints.size();
 	return joints[0];
 }
 
@@ -514,27 +512,125 @@ void getJoints(Skeleton* skel, vector<Skeleton*>* joints) {
 	}
 }
 
-void fill(Skeleton* s, Skeleton* s1, Skeleton* s2, float coef) {
-	for (int i = 0; i < s1->_dofs.size(); i++) {
-		for (int j = 0; j < s1->_dofs[i]._values.size(); j++) {
-			s->_dofs[i]._values[j] = coef*s1->_dofs[i]._values[j] + (1-coef) * s2->_dofs[i]._values[j];
+double compareDofs(Skeleton* s1, Skeleton* s2, int frame1, int frame2, double tol) {
+	double mean = 0;
+	for (uint i = 0; i < s1->_dofs.size(); i++) 
+		mean += std::abs(s1->_dofs[i]._values[frame1] - s2->_dofs[i]._values[frame2]);
+	
+	mean /= s1->_dofs.size();
+	return mean ;
+}
+void findAllignNumberI(vector<Skeleton*> joints1, vector<Skeleton*> joints2, int k, int* i1, int* i2, double tol) {
+	int target = 0, n = 0, nbSite = joints1.size();
+	double mean = 0;
+	int nbFrames = std::min(joints1[0]->_dofs[0]._values.size(), joints2[0]->_dofs[0]._values.size());
+	for (int t1=0; t1<nbFrames;t1++) {
+		for (int t2 = 0; t2 < nbFrames; t2++) {
+			n = 0;
+			mean = 0;
+			for (uint iskel = 0; iskel < joints1.size(); iskel++) {
+				if (joints1[iskel]->_dofs.size()>0 && joints1[iskel]->_dofs.size()>0) {
+					nbSite--;
+					mean += compareDofs(joints1[iskel], joints2[iskel], t1, t2, tol);
+				}
+			}
+			mean /= joints1.size() - nbSite;
+			//cout << mean <<  " " << tol << endl;
+			if (mean < tol) {
+				*i1 = t1;
+				*i2 = t2;
+				target++;
+				if (target == k)
+					return;
+			}
 		}
-	}
-	for (unsigned int ichild = 0; ichild < s1->_children.size(); ichild++) {
-		fill(s->_children[ichild], s1->_children[ichild], s2->_children[ichild], coef);
 	}
 }
 
-Skeleton* Skeleton::createNewAnimation(float coef) {
-	Skeleton* root1 = createFromFile("data/walk.bvh",false);
-	Skeleton* root2 = createFromFile("data/run.bvh",false);
-	int minDofsSize = min(root1->_dofs[0]._values.size(), root2->_dofs[0]._values.size());
+void fill(Skeleton* s, Skeleton* s1, Skeleton* s2, int i1, int i2, double coef, int version) {
+
+	switch (version) {
+	case 0:
+		int min;
+		for (uint i = 0; i < s2->_dofs.size(); i++) {
+			min = std::min(s2->_dofs[i]._values.size(), s1->_dofs[i]._values.size());
+			for (int j = 0; j < min; j++)
+				s->_dofs[i]._values[j] = coef*s2->_dofs[i]._values[j] + (1 - coef) * s1->_dofs[i]._values[j];
+		}
+		for (unsigned int ichild = 0; ichild < s1->_children.size(); ichild++)
+			fill(s->_children[ichild], s1->_children[ichild], s2->_children[ichild], i1, i2, coef, version);
+		break;
+	case 1:
+		for (uint i = 0; i < s2->_dofs.size(); i++) {
+			min = std::min(s2->_dofs[i]._values.size(), s1->_dofs[i]._values.size());
+			for (int j = 0; j < i2; j++)
+				s->_dofs[i]._values[j] = s1->_dofs[i]._values[j];
+			for (int j = i2; j < min; j++)
+				s->_dofs[i]._values[j] = (1 - coef) *s2->_dofs[i]._values[j + i1 - i2] + coef * s1->_dofs[i]._values[j];
+		
+		/*
+					min = std::min(s2->_dofs[i]._values.size(), s1->_dofs[i]._values.size());
+			for (int j = 0; j < i2; j++)
+				s->_dofs[i]._values[j] = s1->_dofs[i]._values[j];
+			int j2 = i2, j1 = i1;;
+			while (j1 < min && j2 < min) {
+
+				s->_dofs[i]._values[j2] = 0.2 *s2->_dofs[i]._values[j1] + 0.8 * s1->_dofs[i]._values[j2];
+				j1++;
+				j2++;
+			}
+			while (j2 < min)
+				s->_dofs[i]._values[j2] = s2->_dofs[i]._values[j2];
+		*/
+		}
+		for (unsigned int ichild = 0; ichild < s1->_children.size(); ichild++)
+			fill(s->_children[ichild], s1->_children[ichild], s2->_children[ichild], i1, i2, coef, version);
+
+		//cout << i1 << " " << i2 << endl;
+		break;
+	default:
+		break;
+	}
+
+}
+
+Skeleton* Skeleton::createNewAnimationVersion0() {
+	float coef = -1;
+	while (coef > 1 || coef < 0) {
+		cout << "Entrer un coeficient entre 0 et 1.\n\t- 1 : walk\n\t- 0 : run" << endl;
+		cin >> coef;
+	}
+
+	Skeleton* root1 = createFromFile("data/walk.bvh", false);
+	Skeleton* root2 = createFromFile("data/run.bvh", false);
 
 	vector<Skeleton*> joints1, joints2;
 	getJoints(root1, &joints1);
 	getJoints(root2, &joints2);
 	Skeleton* newRoot = root1;
-	newRoot->resizeDofs(minDofsSize);
-	fill(newRoot, root1, root2,coef);
+
+	fill(newRoot, root1, root2, 0, 0, coef,0);
+	return newRoot;
+}
+
+Skeleton* Skeleton::createNewAnimationVersion1() {
+	Skeleton* root1 = createFromFile("data/walk.bvh", false);
+	Skeleton* root2 = createFromFile("data/run.bvh", false);
+
+	float coef = -1;
+	while (coef > 1 || coef < 0) {
+		cout << "Entrer un coeficient entre 0 et 1.\n\t- 1 : walk\n\t- 0 : run" << endl;
+		cin >> coef;
+	}
+
+	vector<Skeleton*> joints1, joints2;
+	getJoints(root1, &joints1);
+	getJoints(root2, &joints2);
+	Skeleton* newRoot = root1;
+	
+	int i1 = -1, i2 = -1;
+	findAllignNumberI(joints1, joints2, 100, &i1, &i2, 10e-4);
+
+	fill(newRoot, root1, root2, i1, i2, coef,1);
 	return newRoot;
 }
