@@ -301,6 +301,68 @@ void Skeleton::eulerToMatrix(double rx, double ry, double rz, int rorder, glm::m
 	default: break;
 	}
 }
+
+void Skeleton::transfoToQuaternion(glm::mat3 R, glm::vec3 t, float dq[2][4]) {
+	qglviewer::Quaternion *q;
+	matrixToQuaternion(R, q);
+	// non-dual part (just copy q):
+	for (int i = 0; i<4; i++) dq[0][i] = (*q)[i];
+	// dual part:
+	dq[1][0] = -0.5*(t[0] * (*q)[1] + t[1] * (*q)[2] + t[2] * (*q)[3]);
+	dq[1][1] = 0.5*(t[0] * (*q)[0] + t[1] * (*q)[3] - t[2] * (*q)[2]);
+	dq[1][2] = 0.5*(-t[0] * (*q)[3] + t[1] * (*q)[0] + t[2] * (*q)[1]);
+	dq[1][3] = 0.5*(t[0] * (*q)[2] - t[1] * (*q)[1] + t[2] * (*q)[0]);
+}
+
+glm::vec3 Skeleton::applyQuat(glm::vec3 pos, float dq[2][4]) {
+	//conjugate
+	float dqc[2][4];
+	for (int i = 0; i < 2; i++)
+		for (int j = 0; j < 4; j++)
+			dqc[i][j] = dq[i][j];
+	Skeleton::conjugateDualQuat(dqc);
+	//position quaternion
+	float dqp[2][4] = {1, 0, 0, 0, 0, pos[0], pos[1], pos[2]};
+	//calculus
+	float res1[2][4];
+	float res2[2][4];
+	Skeleton::multiplyDualQuat(dq, dqp, res1);
+	Skeleton::multiplyDualQuat(res1, dqc, res2);
+	glm::vec3 newPos(res2[1][1], res2[1][2], res2[1][3]);
+	return newPos;
+}
+
+void Skeleton::multiplyDualQuat(float dq1[2][4], float dq2[2][4], float res[2][4]) {
+	qglviewer::Quaternion q1, q2, qr;
+	//partie non duale
+	q1 = qglviewer::Quaternion(dq1[0][0], dq1[0][1], dq1[0][2], dq1[0][3]);
+	q2 = qglviewer::Quaternion(dq2[0][0], dq2[0][1], dq2[0][2], dq2[0][3]);
+	qr = q1 * q2;
+	for (int i = 0; 1 < 4; i++) {
+		res[0][i] = qr[i];
+	}
+	//partie duale
+	q1 = qglviewer::Quaternion(dq1[0][0], dq1[0][1], dq1[0][2], dq1[0][3]);
+	q2 = qglviewer::Quaternion(dq2[1][0], dq2[1][1], dq2[1][2], dq2[1][3]);
+	qr = q1 * q2;
+	for (int i = 0; 1 < 4; i++) {
+		res[1][i] = qr[i];
+	}
+	q1 = qglviewer::Quaternion(dq1[1][0], dq1[1][1], dq1[1][2], dq1[1][3]);
+	q2 = qglviewer::Quaternion(dq2[0][0], dq2[0][1], dq2[0][2], dq2[0][3]);
+	qr = q1 * q2;
+	for (int i = 0; 1 < 4; i++) {
+		res[0][i] += qr[i];
+	}
+}
+
+void Skeleton::conjugateDualQuat(float dq[2][4]){
+	dq[0][1] = -dq[0][1];
+	dq[0][2] = -dq[0][2];
+	dq[0][3] = -dq[0][3];
+	dq[1][1] = -dq[1][1];
+}
+
 void Skeleton::matrixToQuaternion(glm::mat3 R, qglviewer::Quaternion *q)
 {
 	// Output quaternion

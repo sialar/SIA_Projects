@@ -395,8 +395,31 @@ void Skinning::applySkinning() {
 	if (!_keepAppling) return;
 	for (int i = 0; i < _nbVtx; i++) {
 		glm::vec4 newpos(0);
-		for (int j = 0; j < _nbJoints; j++)
-			newpos += _weights[i][j] * _transfoCurr[j] * _transfoInitInv[j] * _pointsInit[i];
+		glm::vec3 tempPos(0);
+		for (int j = 0; j < _nbJoints; j++) {
+			//methode avec les matrices
+			//newpos += _weights[i][j] * _transfoCurr[j] * _transfoInitInv[j] * _pointsInit[i];
+			//methode avec les quaternions duaux
+			glm::mat3 RCurr;
+			glm::mat3 RInitInv;
+			glm::vec3 tCurr;
+			glm::vec3 tInitInv;
+			for (int n = 0; n < 3; n++) {
+				tCurr[n] = _transfoCurr[j][3][n];
+				tInitInv[n] = _transfoInitInv[j][3][n];
+				for (int p = 0; p < 3; p++) {
+					RCurr[n][p] = _transfoCurr[j][n][p];
+					RInitInv[n][p] = _transfoInitInv[j][n][p];
+				}
+			}
+			float dqCurr[2][4];
+			float dqInitInv[2][4];
+			Skeleton::transfoToQuaternion(RCurr, tCurr, dqCurr);
+			Skeleton::transfoToQuaternion(RInitInv, tInitInv, dqInitInv);
+			tempPos = Skeleton::applyQuat(glm::vec3(_pointsInit[i]), dqInitInv);
+			tempPos = Skeleton::applyQuat(tempPos, dqCurr);
+			newpos += glm::vec4(tempPos, 1);
+		}
 		_skin->_points[i] = newpos;
 	}
 }
