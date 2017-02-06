@@ -388,7 +388,7 @@ void Skeleton::matrixToQuaternion(glm::mat3 R, qglviewer::Quaternion *q)
 		fourBiggestSquaredMinus1 = fourZSquaredMinus1;
 		biggestIndex = 3;
 	}
-	// Per form square root and division
+	// Perform square root and division
 	float biggestVal = sqrt(fourBiggestSquaredMinus1 + 1.0f) * 0.5f;
 	float mult = 0.25f / biggestVal;
 
@@ -463,13 +463,13 @@ void Skeleton::eulerToAxisAngle(double rx, double ry, double rz, int rorder, qgl
 void Skeleton::nbDofs() {
 	if (_dofs.empty()) return;
 
-	double tol = 0.01;
+	double tol = 0.1;
 	int nbDofsR = -1;
 
 	computeAxisAngles();
 
 	nbDofsR = computeNbDofs(tol);
-	//cout << _name << " : " << nbDofsR << endl;// " degree(s) of freedom in rotation\n";
+	cout << _name << " : " << nbDofsR << endl;// " degree(s) of freedom in rotation\n";
 	// Propagate to children :
 	for (unsigned int ichild = 0; ichild < _children.size(); ichild++) {
 		_children[ichild]->nbDofs();
@@ -495,7 +495,7 @@ int Skeleton::computeNbDofs(double threshold)
 		i++;
 	}
 
-	// Si le produit vectoriel est résté assez faible pour pouvoir considerer les axes de rotaion
+	// Si la norme du produit vectoriel est résté assez faible pour pouvoir considerer les axes de rotaion
 	// colinéaires ( ~ l'axe de rotaion est résté à peu près constant au cours du temps)
 	if (i == rotationAxis.size())
 		return 1;

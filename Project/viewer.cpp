@@ -3,7 +3,7 @@
 
 using namespace std;
 
-std::string jointNameCol = "lfemur";
+std::string jointNameCol = "ltibia";
 
 #if _SKINNING_GPU
 #define BUFFER_OFFSET(a) ((char*)NULL + (a))
@@ -215,7 +215,7 @@ void Viewer::init()
 
   // Load skeleton :
   _root = NULL;
-  _root = Skeleton::createFromFile("data/walk.bvh",true);
+  _root = Skeleton::createFromFile("data/run.bvh",true);
   if (_root) {
 	  if (_root->_dofs.size())
 		  _nframes = _root->_dofs[0]._values.size();
