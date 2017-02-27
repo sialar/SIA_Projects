@@ -1,0 +1,18 @@
+ply
+format binary_little_endian 1.0
+comment VCGLIB generated
+element vertex 642
+property float x
+property float y
+property float z
+property float nx
+property float ny
+property float nz
+element face 1
+property list uchar uint vertex_indices
+end_header
+0.347848 -1.684860 1.279324 -0.220806 0.000000 0.975318
+2.298484 -1.684860 1.720935 -0.220806 0.000000 0.975318
+2.298484 0.315140 1.720935 -0.220806 0.000000 0.975318
+0.347848 0.315140 1.279324 -0.220806 0.000000 0.975318
+4 0 1 2 3
